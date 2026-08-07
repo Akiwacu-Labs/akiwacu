@@ -31,12 +31,12 @@
 # SOCLE — Andy principal, Klein suppléant
 # (évite 90 % des conflits de merge : personne d'autre n'y touche)
 # ─────────────────────────────────────────────────────────────────
-/api/src/main/java/**/config/           @miguelandy875 @Gkcoding-prog
-/api/src/main/java/**/common/           @miguelandy875 @Gkcoding-prog
-/api/src/main/resources/application*     @miguelandy875 @Gkcoding-prog
-/api/src/main/resources/db/migration/   @miguelandy875 @Gkcoding-prog
-/api/pom.xml                            @miguelandy875 @Gkcoding-prog
-/CLAUDE.md                              @miguelandy875 @Gkcoding-prog
+/api/src/main/java/**/config/           @miguelandy875 @GKcoding-prog
+/api/src/main/java/**/common/           @miguelandy875 @GKcoding-prog
+/api/src/main/resources/application*     @miguelandy875 @GKcoding-prog
+/api/src/main/resources/db/migration/   @miguelandy875 @GKcoding-prog
+/api/pom.xml                            @miguelandy875 @GKcoding-prog
+/CLAUDE.md                              @miguelandy875 @GKcoding-prog
 
 # ─────────────────────────────────────────────────────────────────
 # DOMAINES BACKEND — propriétaire + relecteur croisé
@@ -45,9 +45,9 @@
 # ─────────────────────────────────────────────────────────────────
 
 # Andy — auth, utilisateurs, membres
-/api/src/main/java/**/auth/             @miguelandy875 @Gkcoding-prog
-/api/src/main/java/**/utilisateur/      @miguelandy875 @Gkcoding-prog
-/api/src/main/java/**/membre/           @miguelandy875 @Gkcoding-prog
+/api/src/main/java/**/auth/             @miguelandy875 @GKcoding-prog
+/api/src/main/java/**/utilisateur/      @miguelandy875 @GKcoding-prog
+/api/src/main/java/**/membre/           @miguelandy875 @GKcoding-prog
 
 # Juste — tontines, adhésions, reçus PDF
 /api/src/main/java/**/tontine/          @daxa257 @gahibenitha
@@ -64,9 +64,9 @@
 /api/src/main/java/**/pret/             @muhimpundugloria @miguelandy875
 
 # Klein — remboursements, caisse, tableaux de bord
-/api/src/main/java/**/remboursement/    @Gkcoding-prog @miguelandy875
-/api/src/main/java/**/caisse/           @Gkcoding-prog @miguelandy875
-/api/src/main/java/**/dashboard/        @Gkcoding-prog @miguelandy875
+/api/src/main/java/**/remboursement/    @GKcoding-prog @miguelandy875
+/api/src/main/java/**/caisse/           @GKcoding-prog @miguelandy875
+/api/src/main/java/**/dashboard/        @GKcoding-prog @miguelandy875
 
 # ─────────────────────────────────────────────────────────────────
 # CLIENT REACT — Andy possède le socle, chacun ses écrans
@@ -77,23 +77,23 @@
 /client/src/features/cycle/             @gahibenitha @muhimpundugloria
 /client/src/features/cotisation/        @gahibenitha @muhimpundugloria
 /client/src/features/pret/              @muhimpundugloria @miguelandy875
-/client/src/features/dashboard/         @Gkcoding-prog @miguelandy875
+/client/src/features/dashboard/         @GKcoding-prog @miguelandy875
 
 # ─────────────────────────────────────────────────────────────────
 # INFRASTRUCTURE ET CI/CD — Klein principal, Andy suppléant
 # ─────────────────────────────────────────────────────────────────
-/.github/                               @Gkcoding-prog @miguelandy875
-/api/Dockerfile                         @Gkcoding-prog @miguelandy875
-/client/Dockerfile                      @Gkcoding-prog @miguelandy875
-/docker-compose*.yml                    @Gkcoding-prog @miguelandy875
-/infra/                                 @Gkcoding-prog @miguelandy875
-/monitoring/                            @Gkcoding-prog @miguelandy875
+/.github/                               @GKcoding-prog @miguelandy875
+/api/Dockerfile                         @GKcoding-prog @miguelandy875
+/client/Dockerfile                      @GKcoding-prog @miguelandy875
+/docker-compose*.yml                    @GKcoding-prog @miguelandy875
+/infra/                                 @GKcoding-prog @miguelandy875
+/monitoring/                            @GKcoding-prog @miguelandy875
 
 # ─────────────────────────────────────────────────────────────────
 # DOCUMENTATION — Andy rédacteur en chef
 # ─────────────────────────────────────────────────────────────────
-/docs/                                  @miguelandy875 @Gkcoding-prog
-/README.md                              @miguelandy875 @Gkcoding-prog
-/CONTRIBUTING.md                        @miguelandy875 @Gkcoding-prog
-/NOTICE.md                              @miguelandy875 @Gkcoding-prog
-/SECURITY.md                            @Gkcoding-prog @miguelandy875
+/docs/                                  @miguelandy875 @GKcoding-prog
+/README.md                              @miguelandy875 @GKcoding-prog
+/CONTRIBUTING.md                        @miguelandy875 @GKcoding-prog
+/NOTICE.md                              @miguelandy875 @GKcoding-prog
+/SECURITY.md                            @GKcoding-prog @miguelandy875
