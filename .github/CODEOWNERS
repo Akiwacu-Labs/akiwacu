@@ -1,0 +1,99 @@
+# CODEOWNERS — qui doit relire quoi
+#
+# À QUOI SERT CE FICHIER
+# GitHub le lit à chaque ouverture de Pull Request. Il regarde quels fichiers
+# la PR modifie, et demande AUTOMATIQUEMENT une revue aux personnes listées
+# en face de ces chemins. Personne n'a besoin d'assigner un relecteur à la main.
+#
+# Combiné à la protection de branche « Require review from Code Owners »,
+# une PR ne PEUT PAS être mergée sans l'approbation du propriétaire du code
+# touché. C'est le mécanisme qui applique notre rotation de relecteurs —
+# et la participation aux revues est un critère d'évaluation de l'énoncé.
+#
+# RÈGLES DE SYNTAXE
+#   - un chemin, puis un ou plusieurs @pseudos GitHub, séparés par des espaces
+#   - la DERNIÈRE ligne qui correspond gagne (l'ordre compte)
+#   - un pseudo doit avoir un accès EN ÉCRITURE au dépôt, sinon GitHub l'ignore
+#     silencieusement → c'est pourquoi @cincotech (Triage) n'apparaît pas ici
+#
+# POURQUOI DEUX PROPRIÉTAIRES PARTOUT
+#   GitHub interdit d'approuver sa propre PR. Si un chemin n'avait qu'un seul
+#   propriétaire, ses PR sur ce chemin seraient impossibles à merger : GitHub
+#   attendrait l'approbation de quelqu'un qui est justement l'auteur.
+#   Chaque chemin a donc un propriétaire principal ET un suppléant.
+
+# ─────────────────────────────────────────────────────────────────
+# Par défaut : toute PR est vue par Andy
+# ─────────────────────────────────────────────────────────────────
+*                                       @miguelandy875
+
+# ─────────────────────────────────────────────────────────────────
+# SOCLE — Andy principal, Klein suppléant
+# (évite 90 % des conflits de merge : personne d'autre n'y touche)
+# ─────────────────────────────────────────────────────────────────
+/api/src/main/java/**/config/           @miguelandy875 @Gkcoding-prog
+/api/src/main/java/**/common/           @miguelandy875 @Gkcoding-prog
+/api/src/main/resources/application*     @miguelandy875 @Gkcoding-prog
+/api/src/main/resources/db/migration/   @miguelandy875 @Gkcoding-prog
+/api/pom.xml                            @miguelandy875 @Gkcoding-prog
+/CLAUDE.md                              @miguelandy875 @Gkcoding-prog
+
+# ─────────────────────────────────────────────────────────────────
+# DOMAINES BACKEND — propriétaire + relecteur croisé
+# La rotation est volontaire : chacun relit le domaine d'un autre,
+# donc chacun a des revues écrites à son actif.
+# ─────────────────────────────────────────────────────────────────
+
+# Andy — auth, utilisateurs, membres
+/api/src/main/java/**/auth/             @miguelandy875 @Gkcoding-prog
+/api/src/main/java/**/utilisateur/      @miguelandy875 @Gkcoding-prog
+/api/src/main/java/**/membre/           @miguelandy875 @Gkcoding-prog
+
+# Juste — tontines, adhésions, reçus PDF
+/api/src/main/java/**/tontine/          @daxa257 @gahibenitha
+/api/src/main/java/**/adhesion/         @daxa257 @gahibenitha
+/api/src/main/java/**/recu/             @daxa257 @miguelandy875
+
+# Benitha — cycles, cotisations
+/api/src/main/java/**/cycle/            @gahibenitha @muhimpundugloria
+/api/src/main/java/**/cotisation/       @gahibenitha @muhimpundugloria
+
+# Gloria — demandes de prêt, votes, prêts
+/api/src/main/java/**/demandepret/      @muhimpundugloria @miguelandy875
+/api/src/main/java/**/vote/             @muhimpundugloria @miguelandy875
+/api/src/main/java/**/pret/             @muhimpundugloria @miguelandy875
+
+# Klein — remboursements, caisse, tableaux de bord
+/api/src/main/java/**/remboursement/    @Gkcoding-prog @miguelandy875
+/api/src/main/java/**/caisse/           @Gkcoding-prog @miguelandy875
+/api/src/main/java/**/dashboard/        @Gkcoding-prog @miguelandy875
+
+# ─────────────────────────────────────────────────────────────────
+# CLIENT REACT — Andy possède le socle, chacun ses écrans
+# ─────────────────────────────────────────────────────────────────
+/client/                                @miguelandy875 @gahibenitha
+/client/src/features/tontine/           @daxa257 @miguelandy875
+/client/src/features/adhesion/          @daxa257 @miguelandy875
+/client/src/features/cycle/             @gahibenitha @muhimpundugloria
+/client/src/features/cotisation/        @gahibenitha @muhimpundugloria
+/client/src/features/pret/              @muhimpundugloria @miguelandy875
+/client/src/features/dashboard/         @Gkcoding-prog @miguelandy875
+
+# ─────────────────────────────────────────────────────────────────
+# INFRASTRUCTURE ET CI/CD — Klein principal, Andy suppléant
+# ─────────────────────────────────────────────────────────────────
+/.github/                               @Gkcoding-prog @miguelandy875
+/api/Dockerfile                         @Gkcoding-prog @miguelandy875
+/client/Dockerfile                      @Gkcoding-prog @miguelandy875
+/docker-compose*.yml                    @Gkcoding-prog @miguelandy875
+/infra/                                 @Gkcoding-prog @miguelandy875
+/monitoring/                            @Gkcoding-prog @miguelandy875
+
+# ─────────────────────────────────────────────────────────────────
+# DOCUMENTATION — Andy rédacteur en chef
+# ─────────────────────────────────────────────────────────────────
+/docs/                                  @miguelandy875 @Gkcoding-prog
+/README.md                              @miguelandy875 @Gkcoding-prog
+/CONTRIBUTING.md                        @miguelandy875 @Gkcoding-prog
+/NOTICE.md                              @miguelandy875 @Gkcoding-prog
+/SECURITY.md                            @Gkcoding-prog @miguelandy875

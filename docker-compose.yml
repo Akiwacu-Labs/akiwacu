@@ -1,0 +1,34 @@
+# Développement LOCAL — sur le poste de chaque membre
+# Usage : docker compose up -d   puis   ./mvnw spring-boot:run
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: akiwacu-db-local
+    environment:
+      POSTGRES_DB: akiwacu
+      POSTGRES_USER: akiwacu
+      POSTGRES_PASSWORD: akiwacu
+    ports: ["5432:5432"]
+    volumes: ["pgdata:/var/lib/postgresql/data"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U akiwacu"]
+      interval: 5s
+      retries: 10
+
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: akiwacu-prometheus-local
+    ports: ["9090:9090"]
+    volumes: ["./monitoring/prometheus.local.yml:/etc/prometheus/prometheus.yml:ro"]
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: akiwacu-grafana-local
+    ports: ["3000:3000"]
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: admin
+    volumes: ["grafana:/var/lib/grafana"]
+
+volumes:
+  pgdata:
+  grafana:

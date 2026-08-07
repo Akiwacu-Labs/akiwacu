@@ -1,0 +1,52 @@
+# VM-PROD — déployé automatiquement par GitHub Actions sur push main
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: akiwacu-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: akiwacu
+      POSTGRES_USER: akiwacu
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes: ["pgdata:/var/lib/postgresql/data"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U akiwacu"]
+      interval: 10s
+      retries: 10
+    networks: [akiwacu]
+
+  api:
+    image: ghcr.io/${GITHUB_REPOSITORY:-org/akiwacu}/api:${IMAGE_TAG:-latest}
+    container_name: akiwacu-api
+    restart: unless-stopped
+    depends_on:
+      db: { condition: service_healthy }
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/akiwacu
+      SPRING_DATASOURCE_USERNAME: akiwacu
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
+      APP_JWT_SECRET: ${JWT_SECRET}
+      MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE: health,info,metrics,prometheus
+    ports: ["8080:8080"]
+    networks: [akiwacu]
+
+  client:
+    image: ghcr.io/${GITHUB_REPOSITORY:-org/akiwacu}/client:${IMAGE_TAG:-latest}
+    container_name: akiwacu-client
+    restart: unless-stopped
+    depends_on: [api]
+    ports: ["80:80"]
+    networks: [akiwacu]
+
+  node-exporter:
+    image: prom/node-exporter:latest
+    container_name: akiwacu-node-exporter
+    restart: unless-stopped
+    ports: ["9100:9100"]
+    networks: [akiwacu]
+
+volumes:
+  pgdata:
+networks:
+  akiwacu:
