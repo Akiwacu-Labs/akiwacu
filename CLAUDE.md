@@ -163,6 +163,28 @@ cas d'exception (ressource introuvable, non autorisé).
 - Contrôleurs : `@WebMvcTest` + `MockMvc` + `@MockBean` sur le service
 - Repositories : `@DataJpaTest`
 - Intégration : Testcontainers PostgreSQL (M2)
+- **Entités : exigées explicitement par l'énoncé §11.1**
+
+### Tests d'entités — obligatoires
+
+L'énoncé §11.1 liste ce que les tests doivent couvrir : « les **entités métier** ; les
+services ; les règles métier ; les contrôleurs REST ; les cas de succès ; les cas
+d'erreur ; les exceptions ».
+
+Chaque entité porteuse de comportement a sa classe de test. Place la logique qui ne
+dépend que de l'état de l'entité **dans l'entité**, pas dans le service : c'est du bon
+design objet, c'est trivial à tester, et ça satisfait directement l'exigence.
+
+```java
+Cycle.peutAccueillirOperation()   // vrai seulement si statut OUVERT
+Pret.soldeRestant()               // montant initial − somme des remboursements
+Pret.estEnRetard(LocalDate)       // échéance dépassée et solde non nul
+DemandePret.quorumAtteint()       // ≥ 2 votes POUR de commissaires distincts
+Cotisation.estVerrouillee()       // vrai dès qu'un reçu est émis (R8)
+```
+
+⚠ **N'exclus jamais les entités du calcul JaCoCo.** Les exclusions autorisées sont
+`dto/`, `config/`, `*Application.class` et `mapper/*MapperImpl.class` — rien d'autre.
 
 **Objectif de couverture : 80 % lignes** sur `service/` et `controller/`.
 
