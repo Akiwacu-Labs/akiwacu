@@ -31,12 +31,12 @@ Trivy · JaCoCo et le seuil bloquant
 |---|---|
 | **D1** | 4 VM créées à la main · Docker · **runner auto-hébergé enregistré** |
 | **D2** | Dockerfile · docker-compose · **CI verte (build + test)** · Ansible de base |
-| **D3** | SonarQube · JaCoCo 50 % · Trivy · GHCR · **déploiement automatique VM-DEV** |
+| **D3** | SonarQube · JaCoCo 50 % · Trivy · GHCR · **déploiement automatique vm-dev-g1** |
 | **D4** | Tes domaines : remboursement, caisse, R5 · seuil 60 % |
 | **D5** | Prometheus · Grafana · métriques métier Micrometer · écrans dashboard |
-| **D6** | **Seuil 80 %** · Quality Gate vert · **`main` → VM-PROD** |
+| **D6** | **Seuil 80 %** · Quality Gate vert · **`main` → vm-prod-g1** |
 | **D7** | Terraform (codifie l'existant) · captures Sonar/Trivy/Grafana **avec interprétation** |
-| **D8** | Vérification des livrables · snapshot VM-PROD · répétition |
+| **D8** | Vérification des livrables · snapshot vm-prod-g1 · répétition |
 
 **Ne commence pas tes domaines métier avant que la CI soit verte.**
 Si le pipeline n'est pas debout au soir du **D2**, dis-le fort au daily : toute
@@ -111,7 +111,7 @@ backend transaction-caisse, remboursement et dashboard.
 Ma règle métier : R5 — chaque opération financière enregistre le trésorier validateur.
 
 Contexte réseau important : nos VM sont derrière le NAT de l'université, sans IP
-publique. On utilise un runner GitHub auto-hébergé sur VM-CI. Ne me propose jamais
+publique. On utilise un runner GitHub auto-hébergé sur vm-devops-g1. Ne me propose jamais
 une solution qui suppose que GitHub peut joindre nos machines depuis Internet.
 
 Au début de chaque session, lis : CLAUDE.md, docs/PLANNING-8-JOURS.md,
@@ -152,7 +152,7 @@ Tague tout par `tontine` pour pouvoir filtrer.
 - Que se passe-t-il si le Quality Gate échoue sur une PR ?
 - Pourquoi le Quality Gate porte sur le code neuf et pas le code global ?
 - Quelle est la différence entre ton image Docker de build et celle d'exécution ?
-- Si VM-PROD tombe pendant un déploiement, que se passe-t-il ?
+- Si vm-prod-g1 tombe pendant un déploiement, que se passe-t-il ?
 
 ---
 
@@ -160,6 +160,11 @@ Tague tout par `tontine` pour pouvoir filtrer.
 
 | Fichier | Quand |
 |---|---|
+| [`Akiwacu/docs/CARTE-DES-MACHINES.md`](../Akiwacu/docs/CARTE-DES-MACHINES.md) | **Lis-la une fois.** Où lancer quelle commande. |
+| [`Akiwacu/docs/DECISIONS.md`](../Akiwacu/docs/DECISIONS.md) | Avant la soutenance. Ce qui a été décidé et pourquoi — les réponses aux questions du jury. |
+| [`Akiwacu/docs/MATRICE-REGLES-METIER.md`](../Akiwacu/docs/MATRICE-REGLES-METIER.md) | Avant d'implémenter une règle. Propriétaires, noms de tests imposés, pièges. |
+| [`Akiwacu/docs/LIVRABLES.md`](../Akiwacu/docs/LIVRABLES.md) | D7–D8. Les 14 livrables et le découpage du rapport. |
+| [`Akiwacu/docs/SETUP-DEPUIS-ZERO.md`](../Akiwacu/docs/SETUP-DEPUIS-ZERO.md) | La séquence complète du montage, dans l'ordre corrigé. Les 8 pièges en fin de page. |
 | [`INSTALLER-MON-PACK.md`](INSTALLER-MON-PACK.md) | **En premier.** Pack + dépôt côte à côte, Obsidian, Claude Code. |
 | **[`GUIDE-INFRA-PAS-A-PAS.md`](GUIDE-INFRA-PAS-A-PAS.md)** | **Maintenant.** VM, runner, Ansible, Terraform, de A à Z. |
 | [`MES-TACHES.md`](MES-TACHES.md) | Chaque matin. D1 → D8. |

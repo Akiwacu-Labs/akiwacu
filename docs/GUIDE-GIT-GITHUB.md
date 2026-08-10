@@ -192,16 +192,16 @@ gh pr merge --merge --delete-branch
 > ⚠ **`--merge`, jamais `--squash`.** Le squash écrase tes commits individuels en un
 > seul. Or c'est exactement ton historique individuel qui est noté. Ne squash jamais.
 
-### Étape 9 — Vérifier sur VM-DEV
+### Étape 9 — Vérifier sur vm-dev-g1
 
 Le merge déclenche le déploiement. Deux minutes plus tard :
 
 ```bash
-curl http://<IP-VM-DEV>:8080/actuator/health
+curl http://<IP-vm-dev-g1>:8080/actuator/health
 ```
 
-Puis ouvre Swagger sur VM-DEV et **exécute réellement ton endpoint**. Tant que tu ne
-l'as pas vu répondre sur VM-DEV, ta story n'est pas *Done*.
+Puis ouvre Swagger sur vm-dev-g1 et **exécute réellement ton endpoint**. Tant que tu ne
+l'as pas vu répondre sur vm-dev-g1, ta story n'est pas *Done*.
 
 ### Étape 10 — Fermer le ticket Jira
 

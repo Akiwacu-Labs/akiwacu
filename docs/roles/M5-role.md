@@ -169,6 +169,9 @@ C'est la démonstration la plus marquante du groupe. Prépare-la et répète-la.
 
 | Fichier | Quand |
 |---|---|
+| [`Akiwacu/docs/CARTE-DES-MACHINES.md`](../Akiwacu/docs/CARTE-DES-MACHINES.md) | **Lis-la une fois.** Où lancer quelle commande. |
+| [`Akiwacu/docs/DECISIONS.md`](../Akiwacu/docs/DECISIONS.md) | Avant la soutenance. Ce qui a été décidé et pourquoi — les réponses aux questions du jury. |
+| [`Akiwacu/docs/MATRICE-REGLES-METIER.md`](../Akiwacu/docs/MATRICE-REGLES-METIER.md) | Avant d'implémenter une règle. Propriétaires, noms de tests imposés, pièges. |
 | [`INSTALLER-MON-PACK.md`](INSTALLER-MON-PACK.md) | **En premier.** Pack + dépôt côte à côte, Obsidian, Claude Code. |
 | **[`SPECS-GHERKIN.md`](SPECS-GHERKIN.md)** | **D1.** Le métier que tu vas coder. |
 | **[`TESTS-A-COMPLETER.md`](TESTS-A-COMPLETER.md)** | D3–D4. Squelettes de tests à remplir. |

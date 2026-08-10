@@ -170,6 +170,9 @@ où ton retard coûterait plus cher que celui de n'importe qui d'autre.
 
 | Fichier | Quand |
 |---|---|
+| [`Akiwacu/docs/CARTE-DES-MACHINES.md`](../Akiwacu/docs/CARTE-DES-MACHINES.md) | **Lis-la une fois.** Où lancer quelle commande. |
+| [`Akiwacu/docs/DECISIONS.md`](../Akiwacu/docs/DECISIONS.md) | Avant la soutenance. Ce qui a été décidé et pourquoi — les réponses aux questions du jury. |
+| [`Akiwacu/docs/MATRICE-REGLES-METIER.md`](../Akiwacu/docs/MATRICE-REGLES-METIER.md) | Avant d'implémenter une règle. Propriétaires, noms de tests imposés, pièges. |
 | [`INSTALLER-MON-PACK.md`](INSTALLER-MON-PACK.md) | **En premier.** Pack + dépôt côte à côte, Obsidian, Claude Code. |
 | **[`SPEC-RECUS.md`](SPEC-RECUS.md)** | **D1.** Le contrat du service PDF. |
 | [`MES-TACHES.md`](MES-TACHES.md) | Chaque matin. |

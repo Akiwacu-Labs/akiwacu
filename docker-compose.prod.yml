@@ -1,4 +1,4 @@
-# VM-PROD — déployé automatiquement par GitHub Actions sur push main
+# vm-prod-g1 — déployé automatiquement par GitHub Actions sur push main
 services:
   db:
     image: postgres:16-alpine

@@ -1,4 +1,4 @@
-# VM-DEV — déployé automatiquement par GitHub Actions sur push develop
+# vm-dev-g1 — déployé automatiquement par GitHub Actions sur push develop
 services:
   db:
     image: postgres:16-alpine

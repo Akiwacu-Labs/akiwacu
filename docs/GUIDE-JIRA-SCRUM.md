@@ -23,7 +23,7 @@ Cinq colonnes, dans cet ordre :
 | **To Do** | Engagé dans le sprint en cours, personne dessus | — |
 | **In Progress** | Quelqu'un code dessus **maintenant** | **max 2 par personne** |
 | **In Review** | PR ouverte, en attente de revue et de CI | max 3 par personne |
-| **Done** | Mergé dans `develop` **et vérifié sur VM-DEV** | — |
+| **Done** | Mergé dans `develop` **et vérifié sur vm-dev-g1** | — |
 
 > **La limite de 2 en « In Progress » est la règle la plus importante du tableau.**
 > Trois tickets ouverts en même temps veut dire zéro ticket fini. Termine avant de commencer.
@@ -63,8 +63,8 @@ Dès que la PR est ouverte, glisse le ticket en **In Review** et laisse un comme
 `PR #17 ouverte, en attente de revue.`
 
 **6. Passer en Done**
-Seulement quand : PR mergée **ET** endpoint vérifié en direct sur VM-DEV.
-Commente ce que tu as vérifié : `Mergé. Testé sur VM-DEV : POST /api/cotisations/batch renvoie 201.`
+Seulement quand : PR mergée **ET** endpoint vérifié en direct sur vm-dev-g1.
+Commente ce que tu as vérifié : `Mergé. Testé sur vm-dev-g1 : POST /api/cotisations/batch renvoie 201.`
 
 ### A.4 Si tu es bloqué
 
@@ -86,7 +86,7 @@ Commente ce que tu as vérifié : `Mergé. Testé sur VM-DEV : POST /api/cotisat
 
 **Pendant :**
 1. Andy annonce **l'objectif du sprint** en une phrase (5 min)
-   *Sprint 1 : « à la fin, un push sur develop se déploie tout seul sur VM-DEV »*
+   *Sprint 1 : « à la fin, un push sur develop se déploie tout seul sur vm-dev-g1 »*
 2. On parcourt les tickets. Chacun prend les siens et les glisse dans le sprint (15 min)
 3. Estimation rapide (10 min) — voir B.2
 4. Chacun dit à voix haute **son engagement** : *« je livre X, Y et Z d'ici D3 »*
@@ -139,7 +139,7 @@ On écrit les critères d'acceptation manquants. C'est tout.
 
 ### B.5 Revue de sprint / démo — 30 minutes, D3 et D6
 
-**Chacun démontre son domaine en direct sur VM-DEV. Pas sur son portable.**
+**Chacun démontre son domaine en direct sur vm-dev-g1. Pas sur son portable.**
 
 Format, 5 minutes par personne :
 1. Le ticket que j'ai livré
@@ -172,16 +172,94 @@ ticket Jira avec un responsable, sinon ça n'arrive jamais.
 3. Nom : `Akiwacu — Plateforme Tontines`, clé : **`AKW`**
 4. Inviter les 5 membres + `@cincotech` (Jira Free autorise **jusqu'à 10 utilisateurs** — 6 rentre largement)
 
-### C.2 Importer le backlog
+### C.2 Le principe : tout arrive au backlog, rien n'arrive dans un sprint
+
+C'est la pratique Scrum standard et c'est aussi ce que Jira sait faire de manière fiable.
+
+| Ce qui s'importe bien par CSV | Ce qui ne s'importe pas |
+|---|---|
+| Type, résumé, description, assigné, points, labels, priorité | Les epics et le lien parent-enfant *(projet team-managed)* |
+| | Les sprints — un nom de sprint dans le CSV crée un sprint fantôme, sans nom ni dates |
+
+Donc : **le CSV ne contient ni colonne `Sprint` ni colonne d'epic.** Les 93 stories
+tombent toutes dans le backlog, dans l'ordre d'exécution. Les sprints se remplissent
+en 10 minutes au sprint planning, en glissant depuis le haut du backlog. C'est
+exactement le geste que le sprint planning est censé produire.
+
+Le regroupement thématique est porté par les **labels** — `socle` `backend` `frontend`
+`regle-metier` `devops` `test` `doc`, plus un label de jour `D1`…`D8`. Un filtre de
+tableau par label donne la même lecture qu'un epic, sans le champ qui ne s'importe pas.
+
+### C.2 bis Si un import bancal est déjà en place — nettoyer d'abord
+
+Symptômes : des sprints en double, sans nom ni dates, dans le désordre.
+
+**1. Supprimer les sprints fantômes**
+`Backlog` → sur chaque sprint vide ou non daté `···` → `Supprimer le sprint`.
+Les tickets qu'il contient retombent au backlog, ils ne sont pas perdus.
+
+**2. Supprimer les tickets importés**
+`Backlog` ou vue `Work items` → filtrer sur `Created` = aujourd'hui →
+tout sélectionner → `Actions groupées` → `Supprimer`.
+
+**3. Vider les epics résiduels**
+Ils apparaissent dans le panneau `Epic` à gauche du backlog. Supprimer un epic ne
+supprime pas ses enfants.
+
+Le projet doit se retrouver avec un backlog vide et zéro sprint avant de réimporter.
+
+### C.2 ter Importer
 
 `Paramètres du projet` → `Importer` → CSV → charger `02-BACKLOG-JIRA.csv`.
-Mapper les colonnes : `Summary`, `Issue Type`, `Description`, `Assignee`, `Story Points`, `Labels`.
 
-### C.3 Configurer le tableau
+| Colonne CSV | Champ Jira | Inclure |
+|---|---|---|
+| `Issue Type` | Work Type | ✅ |
+| `Summary` | Summary | ✅ |
+| `Description` | Description | ✅ |
+| `Assignee` | Assignee | ✅ |
+| `Story Points` | Story point estimate | ✅ |
+| `Labels` | Labels | ✅ |
+| `Priority` | Priority | ✅ |
 
-- Colonnes : Backlog · To Do · In Progress · In Review · Done
-- **Limite WIP de 2** sur « In Progress » (`Paramètres du tableau` → `Colonnes` → Max)
-- Créer les 3 sprints : `Sprint 1 — Socle & Pipeline`, `Sprint 2 — Règles & Client`, `Sprint 3 — Gel & Rapport`
+À l'étape **« Map values »**, associer chaque prénom du CSV — `Andy` `Klein` `Juste`
+`Benitha` `Gloria` — au compte Atlassian correspondant. Une fois par personne.
+
+**Résultat attendu :** 93 stories au backlog, dans l'ordre d'exécution, zéro sprint.
+
+### C.2 quater Créer les 3 sprints à la main
+
+`Backlog` → bouton `Créer un sprint`, trois fois. Puis sur chacun `···` →
+`Modifier le sprint` :
+
+| Nom | Début | Fin | Objectif du sprint |
+|---|---|---|---|
+| `Sprint 1 — Socle et pipeline` | jeu. 6 août | sam. 8 août | Un push sur `develop` se déploie tout seul sur vm-dev-g1 |
+| `Sprint 2 — Règles métier et client` | dim. 9 août | mar. 11 août | Couverture ≥ 80 %, Quality Gate vert, vm-prod-g1 en ligne |
+| `Sprint 3 — Gel et rapport` | mer. 12 août | jeu. 13 août | 13 livrables déposés, démos répétées |
+
+**Les dates ne s'importent jamais par CSV.** Sans dates, pas de burndown — donc pas
+d'indicateur à montrer à la soutenance.
+
+Au sprint planning du D1, glisser dans Sprint 1 tout ce qui porte les labels `D1`,
+`D2`, `D3`. Idem au D4 et au D7. Puis **démarrer le Sprint 1** : un sprint non démarré
+n'alimente ni le tableau ni le burndown.
+
+### C.2 quinquies Le backlog reste-t-il utile sur 8 jours ?
+
+Oui, et c'est le seul artefact Scrum qui existe en permanence — les sprints, eux, vont
+et viennent. Trois raisons concrètes :
+
+- Le sprint planning **tire depuis le backlog**. Sans backlog, il n'y a rien à tirer et
+  la cérémonie devient une réunion d'improvisation.
+- Ce qui n'entre pas dans Sprint 1 doit rester **visible** plutôt que disparaître. Un
+  périmètre différé et assumé se défend ; un périmètre oublié se remarque.
+- À la soutenance, un backlog ordonné démontre la priorisation. Un tableau où tout est
+  déjà rangé dans des sprints ne démontre rien : on ne voit pas les arbitrages.
+
+Ce qui **n'est pas** utile sur 8 jours : un backlog de fonctionnalités « plus tard »
+qu'on sait ne jamais faire. Nos 93 stories sont toutes destinées à être livrées d'ici
+le D8. Le backlog est une file d'attente, pas un cimetière.
 
 ### C.4 Connecter GitHub à Jira
 

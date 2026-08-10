@@ -43,7 +43,7 @@ pom.xml       CLAUDE.md       .github/
 1. **[`RUNBOOK-GITHUB-CLI.md`](RUNBOOK-GITHUB-CLI.md)** — organisation, dépôt public, invitations, protections, secrets. ~25 min.
 2. Créer le site Jira + Confluence, importer `02-BACKLOG-JIRA.csv`, créer les 3 sprints. ~20 min.
 3. Envoyer à chacun son pack + le lien du dépôt.
-4. **Sprint planning, 30 minutes.** Objectif du Sprint 1 : *« un push sur develop se déploie tout seul sur VM-DEV »*.
+4. **Sprint planning, 30 minutes.** Objectif du Sprint 1 : *« un push sur develop se déploie tout seul sur vm-dev-g1 »*.
 5. Puis tu codes : **la PR socle**.
 
 ---
@@ -130,7 +130,7 @@ délai de 8 jours. Signale-moi ce qui ne tiendra pas dans le temps imparti.
 
 ## Ce que tu montres à la soutenance
 
-1. L'authentification JWT en direct sur VM-PROD
+1. L'authentification JWT en direct sur vm-prod-g1
 2. Le filtre multi-tenant **R1** dans le code, et pourquoi `tontineId` vient du JWT et jamais du body
 3. Le verrouillage **R8** : tentative de modification d'une cotisation avec reçu → 409
 4. L'architecture globale et les deux ADR (client PWA, runner auto-hébergé)
@@ -149,6 +149,11 @@ délai de 8 jours. Signale-moi ce qui ne tiendra pas dans le temps imparti.
 
 | Fichier | Quand |
 |---|---|
+| [`Akiwacu/docs/CARTE-DES-MACHINES.md`](../Akiwacu/docs/CARTE-DES-MACHINES.md) | **Lis-la une fois.** Où lancer quelle commande. |
+| [`Akiwacu/docs/DECISIONS.md`](../Akiwacu/docs/DECISIONS.md) | Avant la soutenance. Ce qui a été décidé et pourquoi — les réponses aux questions du jury. |
+| [`Akiwacu/docs/MATRICE-REGLES-METIER.md`](../Akiwacu/docs/MATRICE-REGLES-METIER.md) | Avant d'implémenter une règle. Propriétaires, noms de tests imposés, pièges. |
+| [`Akiwacu/docs/LIVRABLES.md`](../Akiwacu/docs/LIVRABLES.md) | D7–D8. Les 14 livrables et le découpage du rapport. |
+| [`Akiwacu/docs/SETUP-DEPUIS-ZERO.md`](../Akiwacu/docs/SETUP-DEPUIS-ZERO.md) | La séquence complète du montage, dans l'ordre corrigé. Les 8 pièges en fin de page. |
 | [`INSTALLER-MON-PACK.md`](INSTALLER-MON-PACK.md) | **En premier.** Pack + dépôt côte à côte, Obsidian, Claude Code. |
 | [`RUNBOOK-GITHUB-CLI.md`](RUNBOOK-GITHUB-CLI.md) | **Maintenant.** Création du dépôt de A à Z. |
 | [`MES-TACHES.md`](MES-TACHES.md) | Chaque matin. Tes tâches D1 → D8. |

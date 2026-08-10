@@ -30,7 +30,7 @@ chaîne CI/CD à deux environnements · stack de monitoring · rapport de 15 à 
 |---|---|
 | Socle mergé : 13 entités JPA + Flyway | **D1** |
 | CI verte sur `develop` | **D2** |
-| Déploiement automatique sur VM-DEV | **D3** |
+| Déploiement automatique sur vm-dev-g1 | **D3** |
 | Gel des fonctionnalités | **D7, 12 h** |
 
 ## Règle de déblocage
@@ -43,8 +43,8 @@ Bloqué **plus de 30 minutes** sur un même point : écrire dans le groupe.
 
 | Sprint | Jours | Objectif | Porte de sortie |
 |---|---|---|---|
-| **Sprint 1** | D1–D3 (6 → 8 août) | Socle, CRUD, pipeline | Push `develop` → déploiement VM-DEV automatique |
-| **Sprint 2** | D4–D6 (9 → 11 août) | Règles métier, client, qualité | Couverture ≥ 80 %, Quality Gate vert, VM-PROD en ligne |
+| **Sprint 1** | D1–D3 (6 → 8 août) | Socle, CRUD, pipeline | Push `develop` → déploiement vm-dev-g1 automatique |
+| **Sprint 2** | D4–D6 (9 → 11 août) | Règles métier, client, qualité | Couverture ≥ 80 %, Quality Gate vert, vm-prod-g1 en ligne |
 | **Sprint 3** | D7–D8 (12 → 13 août) | Gel, rapport, répétition | 13 livrables déposés, démos répétées |
 
 ---
@@ -56,7 +56,7 @@ Bloqué **plus de 30 minutes** sur un même point : écrire dans le groupe.
 | **Sprint planning** | D1, D4, D7 au matin | 30 min | Objectif du sprint, prise des tickets, estimation. Maximum 2 min de débat par ticket. |
 | **Daily stand-up** | Tous les jours, heure fixe | 15 min | Trois questions : livré la veille · livré ce jour · point de blocage. Aucun débat technique en séance. |
 | **Affinage du backlog** | D2 et D5 | 15 min | Découpage des tickets au-delà de 8 points, écriture des critères d'acceptation manquants. |
-| **Revue de sprint** | D3 et D6 au soir | 30 min | Démonstration en direct sur VM-DEV, 5 min par personne. |
+| **Revue de sprint** | D3 et D6 au soir | 30 min | Démonstration en direct sur vm-dev-g1, 5 min par personne. |
 | **Rétrospective** | Après chaque revue | 15 min | Stop / Continue / Start. Une seule action retenue, avec un responsable. |
 | **Répétition soutenance** | D8 après-midi | 90 min | 5 min par personne, puis questions. |
 
@@ -81,13 +81,13 @@ L'indicateur de pilotage retenu est le **cycle time** — durée entre « In Pro
 | Qui | Livrables |
 |---|---|
 | **Andy** | Organisation GitHub, dépôt public, protections de branche, invitations · sites Jira et Confluence · sprint planning · **PR socle : 13 entités JPA + Flyway** |
-| **Klein** | 4 VM Proxmox créées · Docker sur DEV/PROD/CI · **runner GitHub auto-hébergé enregistré** · squelette Ansible |
+| **Klein** | 3 VM Proxmox créées · Docker sur les trois · **runner GitHub auto-hébergé enregistré** · squelette Ansible |
 | **Juste** | Poste configuré · dépôt cloné · application locale opérationnelle · énoncé lu · brouillon du MCD |
 | **Benitha** | Poste configuré · dépôt cloné · application locale opérationnelle · machine à états du cycle rédigée |
 | **Gloria** | Poste configuré · dépôt cloné · application locale opérationnelle · specs Gherkin lues |
 
 **Porte de sortie :** `./mvnw verify` vert en local pour chacun · 1 commit poussé par personne ·
-les 4 VM répondent · le runner apparaît en « Idle ».
+les 3 VM répondent en SSH · le runner apparaît en « Idle ».
 
 ---
 
@@ -112,13 +112,13 @@ Si la CI n'est pas verte à la fin de D2, D3 s'ouvre par une mobilisation collec
 | Qui | Livrables |
 |---|---|
 | **Andy** | CRUD utilisateurs et membres avec tests · initialisation du client React · **génération du client API depuis OpenAPI** |
-| **Klein** | SonarQube sur VM-CI · JaCoCo seuil 50 % · Trivy · publication GHCR · **déploiement automatique VM-DEV** |
+| **Klein** | SonarQube sur vm-devops-g1 · JaCoCo seuil 50 % · Trivy · publication GHCR · **déploiement automatique vm-dev-g1** |
 | **Juste** | CRUD tontine et adhésion avec tests · **interface `RecuService` publiée** |
 | **Benitha** | CRUD cycle et cotisation avec tests · **`CycleGuardService` publié et annoncé** |
 | **Gloria** | CRUD demande de prêt, vote et prêt avec tests · contrainte unique `(demande_id, commissaire_id)` |
 
 **Porte de sortie — revue de sprint + rétrospective :** push sur `develop` → déploiement
-automatique sur VM-DEV · tous les endpoints répondent · Swagger accessible depuis VM-DEV.
+automatique sur vm-dev-g1 · tous les endpoints répondent · Swagger accessible depuis vm-dev-g1.
 
 ---
 
@@ -150,7 +150,7 @@ de reçus est appelable par les trois domaines concernés.
 | **Gloria** | Écrans demande de prêt, vote commissaire, détail du prêt, échéancier |
 
 **Porte de sortie :** le parcours de démonstration complet fonctionne de bout en bout sur
-VM-DEV — connexion → création de tontine → ouverture de cycle → saisie de cotisations →
+vm-dev-g1 — connexion → création de tontine → ouverture de cycle → saisie de cotisations →
 demande de prêt → deux votes → approbation → déblocage → reçu PDF → tableau de bord.
 
 ---
@@ -160,13 +160,13 @@ demande de prêt → deux votes → approbation → déblocage → reçu PDF →
 | Qui | Livrables |
 |---|---|
 | **Andy** | Collection Bruno assemblée · durcissement sécurité · revue de couverture globale |
-| **Klein** | **Seuil JaCoCo 80 %** · Quality Gate vert · **merge `main` → déploiement VM-PROD** · dashboards Grafana |
+| **Klein** | **Seuil JaCoCo 80 %** · Quality Gate vert · **merge `main` → déploiement vm-prod-g1** · dashboards Grafana |
 | **Juste** | Couverture ≥ 80 % sur ses packages |
 | **Benitha** | Couverture ≥ 80 % · écrans restants |
 | **Gloria** | Couverture ≥ 80 % · tests de contrôleur · écrans restants |
 
 **Porte de sortie — revue de sprint + rétrospective :** couverture ≥ 80 % · Quality Gate vert ·
-VM-PROD en ligne · toutes les fonctionnalités de l'API accessibles depuis le client.
+vm-prod-g1 en ligne · toutes les fonctionnalités de l'API accessibles depuis le client.
 
 ---
 
@@ -193,13 +193,13 @@ Sprint planning au matin pour la répartition du rapport.
 |---|---|
 | Matin | Finalisation du rapport · export PDF · vérification des 13 livrables |
 | 14 h | **Répétition générale, 90 min** — 5 min par personne, puis questions |
-| 17 h | **Snapshot Proxmox de VM-PROD** · dernier push · dépôt des livrables |
+| 17 h | **Snapshot Proxmox de vm-prod-g1** · dernier push · dépôt des livrables |
 
 ---
 
 # Vendredi 14 août — Soutenance
 
-Chacun présente 5 minutes : 2 endpoints en direct sur **VM-PROD**, 1 règle métier avec son
+Chacun présente 5 minutes : 2 endpoints en direct sur **vm-prod-g1**, 1 règle métier avec son
 test, 1 écran client, 1 PR relue, son historique de commits dans l'onglet Insights.
 
 ---
@@ -216,7 +216,7 @@ Une story est terminée lorsque les neuf points sont satisfaits.
 6. Endpoint annoté OpenAPI et visible dans Swagger
 7. Écran client consommant l'endpoint
 8. Requête ajoutée à la collection Bruno
-9. CI verte, 1 revue approuvée, merge dans `develop`, endpoint vérifié sur VM-DEV
+9. CI verte, 1 revue approuvée, merge dans `develop`, endpoint vérifié sur vm-dev-g1
 
 ## Cadence quotidienne
 

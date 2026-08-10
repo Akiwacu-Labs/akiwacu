@@ -151,7 +151,9 @@ mkdir -p ~/.claude
 nano ~/.claude/CLAUDE.md
 ```
 
-Colle-y le bloc « `~/.claude/CLAUDE.md` » qui se trouve dans **ton** [`LIS-MOI-DABORD.md`](../LIS-MOI-DABORD.md).
+Colle-y le bloc « `~/.claude/CLAUDE.md` » qui se trouve dans **ton**
+[`LIS-MOI-DABORD.md`](../../akiwacu-pack/LIS-MOI-DABORD.md) — dans ton pack, à côté
+du dépôt.
 C'est ce qui fait que Claude Code sait qui tu es et ce que tu possèdes, sans que tu aies
 à le lui réexpliquer à chaque session.
 

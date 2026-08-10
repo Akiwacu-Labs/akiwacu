@@ -1,7 +1,7 @@
-# Pipeline CI/CD — branche main → VM-PROD
+# Pipeline CI/CD — branche main → vm-prod-g1
 # Implémente la séquence exigée par l'énoncé §11.3.
 # Identique au pipeline develop, avec deux différences :
-#   - cible VM-PROD
+#   - cible vm-prod-g1
 #   - seuil Trivy plus strict (CRITICAL,HIGH) et environnement protégé
 #
 # Astuce : configure l'environnement GitHub "production" avec un "required
@@ -9,7 +9,7 @@
 # manuelle — c'est une bonne pratique à mentionner au rapport, et ça évite
 # un déploiement accidentel la veille de la soutenance.
 
-name: CI/CD main → VM-PROD
+name: CI/CD main → vm-prod-g1
 
 on:
   push:
@@ -57,7 +57,15 @@ jobs:
         run: ./mvnw -B test
 
       - name: Génération du rapport de couverture (JaCoCo)
-        run: ./mvnw -B jacoco:report jacoco:check
+        run: ./mvnw -B jacoco:report
+
+      # Le seuil bloquant s'active quand la variable COVERAGE_GATE passe à true.
+      # Tant que le socle n'est pas mergé, il n'y a rien à couvrir : le seuil
+      # ferait échouer la toute première PR, celle qui apporte le code.
+      #   gh variable set COVERAGE_GATE --body true
+      - name: Vérification du seuil de couverture
+        if: vars.COVERAGE_GATE == 'true'
+        run: ./mvnw -B jacoco:check
 
       - name: Publication du rapport de couverture
         if: always()
@@ -67,7 +75,11 @@ jobs:
           path: api/target/site/jacoco/
           retention-days: 90
 
+      # SonarQube tourne sur vm-devops-g1 et n'existe pas au D1.
+      # Klein bascule la variable une fois le serveur en ligne :
+      #   gh variable set SONAR_ENABLED --body true
       - name: Analyse de la qualité du code (SonarQube)
+        if: vars.SONAR_ENABLED == 'true'
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
@@ -79,6 +91,7 @@ jobs:
             -Dsonar.coverage.jacoco.xmlReportPaths=target/site/jacoco/jacoco.xml
 
       - name: Validation du Quality Gate SonarQube
+        if: vars.SONAR_ENABLED == 'true'
         uses: SonarSource/sonarqube-quality-gate-action@master
         timeout-minutes: 5
         env:
@@ -199,7 +212,7 @@ jobs:
         run: docker push ${{ env.REGISTRY }}/${{ github.repository }}/client:latest
 
   deploy-vm-prod:
-    name: Déploiement automatique sur VM-PROD
+    name: Déploiement automatique sur vm-prod-g1
     needs: [build-test-quality, docker-build-scan-push, client-build-push]
     runs-on: [self-hosted, linux, onprem]
     environment: production          # ← ajoute un required reviewer dans les settings
@@ -212,7 +225,7 @@ jobs:
         with:
           ssh-private-key: ${{ secrets.SSH_KEY_PROD }}
 
-      - name: Ajout de VM-PROD aux hôtes connus
+      - name: Ajout de vm-prod-g1 aux hôtes connus
         run: |
           mkdir -p ~/.ssh
           ssh-keyscan -H ${{ secrets.SSH_HOST_PROD }} >> ~/.ssh/known_hosts
@@ -253,7 +266,7 @@ jobs:
             STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
               http://${{ secrets.SSH_HOST_PROD }}:8080/actuator/health || echo "000")
             if [ "$STATUS" = "200" ]; then
-              echo "✅ Application démarrée et saine sur VM-PROD"
+              echo "✅ Application démarrée et saine sur vm-prod-g1"
               exit 0
             fi
             echo "  tentative $i/24 — statut $STATUS"

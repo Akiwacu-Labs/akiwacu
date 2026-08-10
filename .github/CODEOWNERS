@@ -23,9 +23,12 @@
 #   Chaque chemin a donc un propriétaire principal ET un suppléant.
 
 # ─────────────────────────────────────────────────────────────────
-# Par défaut : toute PR est vue par Andy
+# Par défaut : tout fichier non listé plus bas
+# Deux propriétaires ici aussi — sinon les PR d'Andy sur un fichier
+# non couvert (nouveau package, .gitignore, nouveau .md) seraient
+# impossibles à merger : il serait seul relecteur de sa propre PR.
 # ─────────────────────────────────────────────────────────────────
-*                                       @miguelandy875
+*                                       @miguelandy875 @GKcoding-prog
 
 # ─────────────────────────────────────────────────────────────────
 # SOCLE — Andy principal, Klein suppléant
