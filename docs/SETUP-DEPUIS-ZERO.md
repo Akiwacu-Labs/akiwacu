@@ -150,8 +150,11 @@ l'échec et fait perdre vingt minutes plus loin.
 
 ### B2 · Image cloud et template
 
-Télécharger l'image cloud Debian, créer une VM, y attacher le disque, configurer
-cloud-init, convertir en template.
+Télécharger l'image cloud **Ubuntu 24.04 (noble)**, créer une VM, y attacher le
+disque, configurer cloud-init, convertir en template.
+
+> L'hôte Proxmox tourne sous Debian 13 ; les VM invitées sont sous Ubuntu. Ce sont
+> deux systèmes différents, ne les confonds pas.
 
 > Le template n'est ni démarré, ni supprimé, jamais. Les trois VM en dépendent.
 
@@ -293,7 +296,7 @@ GitHub connecté.
    *« un push sur develop se déploie tout seul sur vm-dev-g1 ».*
 4. Andy enchaîne sur la **PR socle** : 13 entités JPA + migrations Flyway.
 
-✅ **Setup terminé quand :** chacun a fait tourner `./mvnw verify` en local et poussé
+✅ **Setup terminé quand :** chacun a fait tourner `./mvnw verify` depuis `api/` et poussé
 un commit.
 
 ---

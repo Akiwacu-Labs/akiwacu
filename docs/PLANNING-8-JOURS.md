@@ -45,7 +45,7 @@ Bloqué **plus de 30 minutes** sur un même point : écrire dans le groupe.
 |---|---|---|---|
 | **Sprint 1** | D1–D3 (6 → 8 août) | Socle, CRUD, pipeline | Push `develop` → déploiement vm-dev-g1 automatique |
 | **Sprint 2** | D4–D6 (9 → 11 août) | Règles métier, client, qualité | Couverture ≥ 80 %, Quality Gate vert, vm-prod-g1 en ligne |
-| **Sprint 3** | D7–D8 (12 → 13 août) | Gel, rapport, répétition | 13 livrables déposés, démos répétées |
+| **Sprint 3** | D7–D8 (12 → 13 août) | Gel, rapport, répétition | 14 livrables déposés, démos répétées |
 
 ---
 
@@ -86,7 +86,7 @@ L'indicateur de pilotage retenu est le **cycle time** — durée entre « In Pro
 | **Benitha** | Poste configuré · dépôt cloné · application locale opérationnelle · machine à états du cycle rédigée |
 | **Gloria** | Poste configuré · dépôt cloné · application locale opérationnelle · specs Gherkin lues |
 
-**Porte de sortie :** `./mvnw verify` vert en local pour chacun · 1 commit poussé par personne ·
+**Porte de sortie :** `cd api && ./mvnw verify` vert en local pour chacun · 1 commit poussé par personne ·
 les 3 VM répondent en SSH · le runner apparaît en « Idle ».
 
 ---
@@ -191,7 +191,7 @@ Sprint planning au matin pour la répartition du rapport.
 
 | Créneau | Contenu |
 |---|---|
-| Matin | Finalisation du rapport · export PDF · vérification des 13 livrables |
+| Matin | Finalisation du rapport · export PDF · vérification des 14 livrables |
 | 14 h | **Répétition générale, 90 min** — 5 min par personne, puis questions |
 | 17 h | **Snapshot Proxmox de vm-prod-g1** · dernier push · dépôt des livrables |
 

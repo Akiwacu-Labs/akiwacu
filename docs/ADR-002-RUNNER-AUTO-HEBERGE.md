@@ -1,6 +1,9 @@
 # ADR-002 — Runner GitHub Actions auto-hébergé
 
-**Statut :** acceptée · **Date :** D1 · **Auteur :** @GKcoding-prog · **Décision liée :** `DECISIONS.md` D-13
+**Statut :** acceptée · **Date :** D1 · **Auteur :** Klein · **Décision liée :** `DECISIONS.md` D-13
+
+Ce document est destiné au **chapitre 4 du rapport technique**. C'est la décision
+d'architecture la plus structurante du projet.
 
 ---
 

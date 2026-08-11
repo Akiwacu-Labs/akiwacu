@@ -48,16 +48,59 @@ java -version      # doit afficher 21.x
 
 ## 3. Docker
 
+**Deux chemins différents. Prends celui de ton système, ne mélange pas.**
+
+### 3a · Sous Windows + WSL → **Docker Desktop**
+
+C'est le chemin recommandé, et le script `get.docker.com` te le dira lui-même si tu
+le lances. Ne l'ignore pas : faire tourner le moteur Docker *dans* WSL demande de
+gérer systemd, iptables et les cgroups, qui n'y sont que partiellement émulés. C'est
+une source de pannes obscures qu'on n'a pas le temps de déboguer.
+
+1. Installe Docker Desktop — https://www.docker.com/products/docker-desktop/
+2. `Settings` → `Resources` → `WSL Integration` → **active ta distribution**
+3. `Apply & Restart`, puis **ferme et rouvre ton terminal WSL**
+
 ```bash
-curl -fsSL https://get.docker.com | sudo sh
-sudo usermod -aG docker $USER
-newgrp docker
 docker run hello-world      # doit afficher "Hello from Docker!"
 docker compose version
 ```
 
-Sous Windows, tu peux aussi installer Docker Desktop et activer l'intégration WSL2
-(`Settings` → `Resources` → `WSL Integration` → activer Ubuntu-24.04).
+> Pas de `usermod -aG docker`, pas de `newgrp` : avec Docker Desktop, le groupe
+> `docker` de WSL ne sert à rien.
+
+> **Docker Desktop doit tourner** pour que `docker` réponde dans WSL. Après un
+> redémarrage du PC, c'est la première chose à vérifier.
+
+**Si tu as déjà lancé `get.docker.com` dans WSL**, nettoie — sinon chaque
+`apt update` sortira une erreur sur un dépôt inutilisable :
+
+```bash
+sudo rm -f /etc/apt/sources.list.d/docker.list /etc/apt/keyrings/docker.asc
+sudo apt update
+```
+
+### 3b · Sous Linux natif ou macOS → le moteur Docker
+
+```bash
+curl -fsSL https://get.docker.com | sudo sh
+sudo usermod -aG docker $USER
+newgrp docker                # si absent : sudo apt install util-linux-extra
+docker run hello-world
+docker compose version
+```
+
+> Si l'installation échoue sur `Unable to locate package docker-ce`, ta version
+> d'Ubuntu est trop récente pour les dépôts Docker. Vérifie avec `lsb_release -cs` :
+> Docker ne publie que pour les versions déjà prises en charge.
+
+---
+
+> **Ce choix ne concerne que ton poste.** Les 3 VM font tourner Docker Engine natif,
+> installé par Ansible sur Ubuntu Server — c'est là que la méthode 3b s'applique. Le
+> runner CI utilise le Docker de `vm-devops-g1`. Ton Docker local ne sert qu'à
+> `docker compose up -d` pour ton PostgreSQL de développement : aucun effet sur le
+> livrable ni sur la note.
 
 ---
 
@@ -162,12 +205,20 @@ C'est ce qui fait que Claude Code sait qui tu es et ce que tu possèdes, sans qu
 ## 10. Cloner le projet et vérifier que tout marche
 
 ```bash
-cd ~
-gh repo clone akiwacu-labs/akiwacu
-cd akiwacu
+mkdir -p ~/projects && cd ~/projects
+gh repo clone Akiwacu-Labs/Akiwacu Akiwacu
+cd Akiwacu
 git checkout develop
 
-docker compose up -d          # PostgreSQL en local
+docker compose up -d          # PostgreSQL en local, depuis la racine du dépôt
+```
+
+> **Le `pom.xml` est dans `api/`, pas à la racine** — c'est un monorepo. Toutes les
+> commandes Maven se lancent depuis `api/`, sinon tu obtiens
+> `there is no POM in this directory`.
+
+```bash
+cd api
 ./mvnw clean verify           # compile + tests + couverture
 ./mvnw spring-boot:run        # démarre l'API
 ```
@@ -192,7 +243,7 @@ Puis ouvre dans ton navigateur :
 - [ ] `git config --global user.email` = mon email GitHub
 - [ ] IntelliJ ouvre le projet sans erreur
 - [ ] SonarQube for IDE est installé
-- [ ] `./mvnw clean verify` passe au vert
+- [ ] `cd api && ./mvnw clean verify` passe au vert
 - [ ] Swagger UI s'ouvre en local
 - [ ] `~/.claude/CLAUDE.md` contient mon bloc personnel
 - [ ] **J'ai poussé au moins un commit sur une branche**
@@ -205,8 +256,12 @@ Le dernier point est le vrai test. Tant que tu n'as pas poussé, tu n'es pas pr�
 
 | Symptôme | Solution |
 |---|---|
-| `docker: permission denied` | `sudo usermod -aG docker $USER` puis **ferme et rouvre** le terminal |
-| `./mvnw: Permission denied` | `chmod +x mvnw` |
+| `docker: could not be found in this WSL 2 distro` | Docker Desktop tourne mais l'intégration WSL n'est pas activée → §3a |
+| `docker: permission denied` (Linux natif) | `sudo usermod -aG docker $USER` puis **ferme et rouvre** le terminal |
+| `Unable to locate package docker-ce` | Ubuntu trop récente pour les dépôts Docker. Sous Windows, passe par Docker Desktop (§3a). |
+| `newgrp: command not found` | `sudo apt install util-linux-extra` — inutile avec Docker Desktop |
+| `./mvnw: Permission denied` | `chmod +x api/mvnw` |
+| `there is no POM in this directory` | Tu es à la racine. Le `pom.xml` est dans `api/` : `cd api` d'abord. |
 | `port 5432 already in use` | Un PostgreSQL tourne déjà : `sudo systemctl stop postgresql` |
 | `java: command not found` après redémarrage | `source ~/.sdkman/bin/sdkman-init.sh`, et ajoute-le à `~/.bashrc` |
 | Tests qui échouent au premier `verify` | Normal si le socle n'est pas encore mergé. Demande à Andy où il en est. |

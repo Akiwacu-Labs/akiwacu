@@ -236,7 +236,7 @@ Le projet doit se retrouver avec un backlog vide et zéro sprint avant de réimp
 |---|---|---|---|
 | `Sprint 1 — Socle et pipeline` | jeu. 6 août | sam. 8 août | Un push sur `develop` se déploie tout seul sur vm-dev-g1 |
 | `Sprint 2 — Règles métier et client` | dim. 9 août | mar. 11 août | Couverture ≥ 80 %, Quality Gate vert, vm-prod-g1 en ligne |
-| `Sprint 3 — Gel et rapport` | mer. 12 août | jeu. 13 août | 13 livrables déposés, démos répétées |
+| `Sprint 3 — Gel et rapport` | mer. 12 août | jeu. 13 août | 14 livrables déposés, démos répétées |
 
 **Les dates ne s'importent jamais par CSV.** Sans dates, pas de burndown — donc pas
 d'indicateur à montrer à la soutenance.

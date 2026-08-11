@@ -55,22 +55,22 @@ utilisent `defaults.run.working-directory: api` et des filtres de chemin
 
 ```
 bi.ac.upg.akiwacu
-├── config/           # M1 uniquement — SecurityConfig, OpenApiConfig, JpaAuditConfig
-├── common/           # M1 — BaseEntity, GlobalExceptionHandler, exceptions métier, TenantContext
-├── auth/             # M1
-├── utilisateur/      # M1
-├── membre/           # M1
-├── tontine/          # M3
-├── adhesion/         # M3
-├── recu/             # M3  (service partagé de génération PDF)
-├── cycle/            # M4
-├── cotisation/       # M4
-├── demandepret/      # M5
-├── vote/             # M5
-├── pret/             # M5
-├── remboursement/    # M2
-├── caisse/           # M2
-└── dashboard/        # M2
+├── config/           # Andy uniquement — SecurityConfig, OpenApiConfig, JpaAuditConfig
+├── common/           # Andy — BaseEntity, GlobalExceptionHandler, exceptions métier, TenantContext
+├── auth/             # Andy
+├── utilisateur/      # Andy
+├── membre/           # Andy
+├── tontine/          # Juste
+├── adhesion/         # Juste
+├── recu/             # Juste  (service partagé de génération PDF)
+├── cycle/            # Benitha
+├── cotisation/       # Benitha
+├── demandepret/      # Gloria
+├── vote/             # Gloria
+├── pret/             # Gloria
+├── remboursement/    # Klein
+├── caisse/           # Klein
+└── dashboard/        # Klein
 ```
 
 Chaque package domaine suit **exactement** cette structure :
@@ -88,6 +88,14 @@ Chaque package domaine suit **exactement** cette structure :
 └── README.md                     # 10 lignes : périmètre, propriétaire, règles couvertes
 ```
 
+## Modèle de données — LIS-LE AVANT D'ÉCRIRE UNE ENTITÉ
+
+Les 13 entités, leurs champs, types, relations et contraintes sont spécifiés dans
+**`docs/MODELE-DE-DONNEES.md`**. Ce fichier fait autorité.
+
+N'invente jamais un champ, une relation ou un nom de table : si quelque chose manque,
+signale-le au lieu de le deviner. Quatre personnes construisent sur ce schéma.
+
 ## Règles métier — R1 à R8
 
 Elles sont le cœur de la notation. **Toujours dans la couche service, jamais dans
@@ -95,14 +103,14 @@ le contrôleur.** Chacune a un test unitaire portant le nom indiqué.
 
 | Règle | Énoncé | Propriétaire | Test obligatoire |
 |---|---|---|---|
-| **R1** | Isolation totale des données par tontine | M1 | `shouldNotAccessDataFromAnotherTontine()` |
-| **R2** | Toute opération financière appartient à un cycle actif | M4 | `shouldRejectOperationOnInactiveCycle()` |
-| **R3** | Aucun prêt si le cycle est gelé ou clôturé | M4/M5 | `shouldRejectLoanWhenCycleFrozen()` |
-| **R4** | Prêt approuvé par ≥ 2 commissaires **distincts** | M5 | `shouldRejectApprovalFromSameCommissionerTwice()` |
-| **R5** | Chaque opération financière enregistre le trésorier validateur | M2 | `shouldRecordValidatingTreasurer()` |
-| **R6** | Montant du prêt ≤ 3 × épargne du membre | M5 | `shouldRejectLoanExceedingThreeTimesSavings()` |
-| **R7** | Échéance du prêt ≤ fin du cycle | M5 | `shouldRejectDueDateAfterCycleEnd()` |
-| **R8** | Opération validée avec reçu → non modifiable ni supprimable | M1 | `shouldRejectModificationOfReceiptedOperation()` |
+| **R1** | Isolation totale des données par tontine | Andy | `shouldNotAccessDataFromAnotherTontine()` |
+| **R2** | Toute opération financière appartient à un cycle actif | Benitha | `shouldRejectOperationOnInactiveCycle()` |
+| **R3** | Aucun prêt si le cycle est gelé ou clôturé | Benitha/Gloria | `shouldRejectLoanWhenCycleFrozen()` |
+| **R4** | Prêt approuvé par ≥ 2 commissaires **distincts** | Gloria | `shouldRejectApprovalFromSameCommissionerTwice()` |
+| **R5** | Chaque opération financière enregistre le trésorier validateur | Klein | `shouldRecordValidatingTreasurer()` |
+| **R6** | Montant du prêt ≤ 3 × épargne du membre | Gloria | `shouldRejectLoanExceedingThreeTimesSavings()` |
+| **R7** | Échéance du prêt ≤ fin du cycle | Gloria | `shouldRejectDueDateAfterCycleEnd()` |
+| **R8** | Opération validée avec reçu → non modifiable ni supprimable | Andy | `shouldRejectModificationOfReceiptedOperation()` |
 
 ### R1 — non négociable
 
@@ -162,7 +170,7 @@ cas d'exception (ressource introuvable, non autorisé).
 - Services : Mockito pur, pas de contexte Spring
 - Contrôleurs : `@WebMvcTest` + `MockMvc` + `@MockBean` sur le service
 - Repositories : `@DataJpaTest`
-- Intégration : Testcontainers PostgreSQL (M2)
+- Intégration : Testcontainers PostgreSQL (Klein)
 - **Entités : exigées explicitement par l'énoncé §11.1**
 
 ### Tests d'entités — obligatoires

@@ -66,3 +66,10 @@ un reçu : cotisation, déblocage de prêt, remboursement. Pas seulement les cot
 
 ---
 
+## Ce qu'on montre à la soutenance
+
+Pour chaque règle, dans cet ordre — trois minutes suffisent :
+
+1. le test, ouvert dans l'IDE, avec son nom exact
+2. le service où la règle vit, et pourquoi elle n'est pas dans le contrôleur
+3. la tentative de violation en direct sur Swagger, et le code HTTP renvoyé
