@@ -174,8 +174,11 @@ jobs:
   # ─────────────────────────────────────────────────────────────
   client-build-push:
     name: Build et publication du client React
+    # Le client React n'existe pas encore (client/ est vide).
+    # À activer quand le squelette Vite sera en place :
+    #   gh variable set CLIENT_ENABLED --body true
     needs: build-test-quality
-    if: github.event_name == 'push'
+    if: vars.CLIENT_ENABLED == 'true' && github.event_name == 'push'
     runs-on: [self-hosted, linux, onprem]
     permissions:
       contents: read
@@ -223,8 +226,11 @@ jobs:
 
   deploy-vm-dev:
     name: Déploiement automatique sur vm-dev-g1
+    # Le déploiement exige les 3 VM joignables en SSH avec gha_deploy.
+    # Klein active quand les secrets SSH_* sont vérifiés :
+    #   gh variable set DEPLOY_ENABLED --body true
     needs: [build-test-quality, docker-build-scan-push, client-build-push]
-    if: github.event_name == 'push'
+    if: vars.DEPLOY_ENABLED == 'true' && github.event_name == 'push'
     runs-on: [self-hosted, linux, onprem]
     environment: development
 

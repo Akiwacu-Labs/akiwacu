@@ -1,0 +1,12 @@
+# Environnement vm-prod-g1 (192.168.0.51). Aucun secret en clair, aucun SQL en log.
+spring:
+  datasource:
+    url: ${DB_URL}
+    username: ${DB_USER}
+    password: ${DB_PASSWORD}
+  jpa:
+    show-sql: false
+logging:
+  level:
+    root: INFO
+    bi.ac.upg.akiwacu: INFO

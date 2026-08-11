@@ -164,8 +164,9 @@ jobs:
   # ─────────────────────────────────────────────────────────────
   client-build-push:
     name: Build et publication du client React
+    # Voir cicd-develop.yml — gh variable set CLIENT_ENABLED --body true
     needs: build-test-quality
-    if: github.event_name == 'push'
+    if: vars.CLIENT_ENABLED == 'true' && github.event_name == 'push'
     runs-on: [self-hosted, linux, onprem]
     permissions:
       contents: read
@@ -213,7 +214,9 @@ jobs:
 
   deploy-vm-prod:
     name: Déploiement automatique sur vm-prod-g1
+    # Voir cicd-develop.yml — gh variable set DEPLOY_ENABLED --body true
     needs: [build-test-quality, docker-build-scan-push, client-build-push]
+    if: vars.DEPLOY_ENABLED == 'true'
     runs-on: [self-hosted, linux, onprem]
     environment: production          # ← ajoute un required reviewer dans les settings
 

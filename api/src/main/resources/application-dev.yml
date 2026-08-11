@@ -1,0 +1,12 @@
+# Environnement vm-dev-g1 (192.168.0.50). Toutes les valeurs viennent de l'environnement.
+spring:
+  datasource:
+    url: ${DB_URL}
+    username: ${DB_USER}
+    password: ${DB_PASSWORD}
+  jpa:
+    show-sql: true
+logging:
+  level:
+    bi.ac.upg.akiwacu: DEBUG
+    org.hibernate.SQL: DEBUG
