@@ -2,9 +2,22 @@
 
 <!-- 2-3 phrases. Quel comportement métier est ajouté ou corrigé ? -->
 
-## Story / Épic
+## Ticket Jira
 
-Closes #
+<!--
+Écris la clé du ticket, par exemple : AKW-42
+PAS de « # » — le dièse désigne une issue GitHub, et notre tableau est Jira.
+
+Mets aussi la clé dans le nom de la branche et dans au moins un commit :
+    git checkout -b feat/cotisation-saisie-rapide
+    git commit -m "feat(cotisation): saisie rapide multi-membres (AKW-42)"
+
+L'app « GitHub for Jira » lit ces clés et rattache automatiquement branche,
+commits, PR et déploiement au ticket. C'est la traçabilité que le correcteur
+vérifie en un clic — personne ne relie quoi que ce soit à la main.
+-->
+
+AKW-
 
 ## Règles métier concernées
 
