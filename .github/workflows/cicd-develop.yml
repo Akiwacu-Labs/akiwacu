@@ -45,12 +45,19 @@ jobs:
         with:
           fetch-depth: 0        # requis par SonarQube pour la blame
 
-      - name: Installation de Java ${{ env.JAVA_VERSION }}
-        uses: actions/setup-java@v4
-        with:
-          java-version: ${{ env.JAVA_VERSION }}
-          distribution: temurin
-          cache: maven
+      # Java est PRÉ-INSTALLÉ sur vm-devops-g1 — on ne le télécharge pas.
+      #
+      # actions/setup-java télécharge un JDK d'environ 180 Mo à chaque exécution.
+      # Sur la liaison de l'université, l'action elle-même expirait au bout de
+      # 100 s avant même d'avoir commencé. Un runner auto-hébergé est une machine
+      # persistante : l'outillage vit dessus, pas dans le job.
+      #
+      # Installation, une seule fois, sur vm-devops-g1 :
+      #   sudo apt install -y openjdk-21-jdk
+      - name: Vérification de Java ${{ env.JAVA_VERSION }}
+        run: |
+          java -version
+          echo "JAVA_HOME=$JAVA_HOME"
 
       - name: Compilation complète du projet Maven
         run: ./mvnw -B clean compile
