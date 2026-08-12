@@ -168,10 +168,27 @@ boolean quorumAtteint()   // ≥ 2 votes POUR de commissaires distincts → R4
 | `recu` | FK `recus` | nullable |
 
 ```java
-BigDecimal montantDu()                  // montantAccorde + intérêts
+BigDecimal montantDu()                  // voir la formule ci-dessous
 BigDecimal soldeRestant()               // montantDu() − somme des remboursements
 boolean    estEnRetard(LocalDate jour)  // jour > dateEcheance && soldeRestant() > 0
 ```
+
+**Formule des intérêts — arrêtée, ne pasla changer sans passer par le daily :**
+
+```
+montantDu = montantAccorde + (montantAccorde × tauxInteret / 100)
+```
+
+Un **taux forfaitaire appliqué une seule fois** sur la durée du prêt, arrondi
+`HALF_UP` à 2 décimales. Pas de capitalisation, pas de prorata mensuel.
+
+C'est ce que pratiquent la plupart des tontines, c'est calculable de tête par un
+trésorier, et c'est défendable en une phrase à la soutenance. `tauxInteret` vaut `0`
+par défaut : la démonstration fonctionne sans jamais toucher au sujet.
+
+> ⚠ **R6 porte sur `montantDemande`, pas sur `montantDu`.** Le plafond de 3 × épargne
+> s'applique au **capital demandé**. Sinon un prêt conforme deviendrait non conforme
+> par le seul effet des intérêts, ce qui n'a pas de sens métier.
 
 ## 10. `Remboursement` — `remboursements`
 
@@ -213,6 +230,20 @@ boolean    estEnRetard(LocalDate jour)  // jour > dateEcheance && soldeRestant()
 > **`UNIQUE (type_operation, operation_id)`** — une opération ne peut avoir qu'un reçu.
 > C'est cette contrainte qui rend **R8** vérifiable : un reçu existe ⇒ l'opération est
 > gelée.
+
+**Séquence et format du numéro — arrêtés :**
+
+```sql
+CREATE SEQUENCE seq_numero_recu START 1 INCREMENT 1;
+```
+
+Format : **`REC-<année>-<6 chiffres>`**, par exemple `REC-2026-000042`.
+Le `RecuService` de Juste consomme cette séquence exacte — le nom fait partie du
+contrat, il ne se renomme pas.
+
+> Le numéro est généré **en base**, pas en Java. Deux trésoriers qui émettent un reçu
+> à la même seconde obtiendraient sinon le même numéro, et l'énoncé exige une
+> numérotation séquentielle vérifiable.
 
 Les **7 champs obligatoires du PDF** (énoncé §9) : numéro, date, nom du membre, type
 d'opération, montant en chiffres et en lettres, nom de la tontine, validateur.

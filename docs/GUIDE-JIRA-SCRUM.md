@@ -47,16 +47,25 @@ git checkout -b feat/cotisation-saisie-rapide
 ```
 
 **4. Lier le ticket à ta PR**
-Dans la description de la PR, écris la clé Jira :
-```
-Closes AKW-42
-```
-Mentionne aussi la clé dans au moins un commit :
+
+Il suffit d'écrire la **clé du ticket** — `AKW-42` — à trois endroits :
+
 ```bash
+git checkout -b feat/cotisation-saisie-rapide-AKW-42
 git commit -m "feat(cotisation): ajouter la saisie rapide multi-membres (AKW-42)"
 ```
-Jira relie alors automatiquement la branche, les commits et la PR au ticket. Le
-correcteur voit la traçabilité complète : ticket → branche → commits → PR → merge.
+
+et dans la description de la PR (le modèle a un champ pour ça).
+
+> ⚠ **Pas de `#`.** Le dièse désigne une issue GitHub. Notre tableau est Jira :
+> on écrit `AKW-42`, jamais `#42`.
+
+L'app **GitHub for Jira** repère ces clés et rattache branche, commits, PR et
+déploiement au ticket. Le correcteur voit la traçabilité complète en un clic :
+ticket → branche → commits → PR → merge.
+
+Le rattachement est automatique ; **le changement de colonne ne l'est pas**. C'est
+toi qui glisses le ticket en In Review puis en Done.
 
 **5. Passer en In Review**
 Dès que la PR est ouverte, glisse le ticket en **In Review** et laisse un commentaire :

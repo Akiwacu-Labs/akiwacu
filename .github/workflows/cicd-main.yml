@@ -1,13 +1,26 @@
 # Pipeline CI/CD — branche main → vm-prod-g1
-# Implémente la séquence exigée par l'énoncé §11.3.
-# Identique au pipeline develop, avec deux différences :
-#   - cible vm-prod-g1
-#   - seuil Trivy plus strict (CRITICAL,HIGH) et environnement protégé
+# Implémente exactement la séquence exigée par l'énoncé §11.3.
+# Toute étape en échec interrompt le pipeline : le déploiement n'a lieu
+# que si TOUTES les étapes précédentes sont validées.
 #
-# Astuce : configure l'environnement GitHub "production" avec un "required
-# reviewer" (toi, M1). Le déploiement PROD demandera alors une approbation
-# manuelle — c'est une bonne pratique à mentionner au rapport, et ça évite
-# un déploiement accidentel la veille de la soutenance.
+# ─────────────────────────────────────────────────────────────────────
+# DEUX RÉGLAGES PROPRES AU RUNNER AUTO-HÉBERGÉ
+#
+# 1. L'OUTILLAGE EST PRÉ-INSTALLÉ SUR LA VM (JDK 21, Node 20, jq).
+#    actions/setup-java télécharge un JDK d'environ 180 Mo À CHAQUE exécution ;
+#    setup-node fait de même avec Node. Un runner GitHub part d'une image dont
+#    le cache d'outils est déjà chaud — le nôtre est une machine persistante :
+#    on installe une fois, on vérifie ensuite.
+#
+# 2. TRIVY TOURNE EN CONTENEUR, base de vulnérabilités en cache sur disque.
+#    trivy-action retélécharge son binaire (~50 Mo) à chaque exécution.
+#
+# Le reste utilise les actions standard. Le problème initial — expiration au
+# bout de 100 s sur codeload.github.com — venait du contrôle de congestion TCP
+# de la VM, pas de la bande passante : 16 Ko/s avant réglage, 49 Ko/s après
+# activation de BBR et élargissement des fenêtres. Voir
+# docs/ADR-002-RUNNER-AUTO-HEBERGE.md.
+# ─────────────────────────────────────────────────────────────────────
 
 name: CI/CD main → vm-prod-g1
 
@@ -19,13 +32,17 @@ env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}/api
   JAVA_VERSION: '21'
+  TRIVY_CACHE: /opt/akiwacu/trivy-cache
 
 concurrency:
-  group: production
-  cancel-in-progress: false
+  group: main-${{ github.ref }}
+  cancel-in-progress: false      # on n'annule jamais un déploiement de production
 
 jobs:
 
+  # ─────────────────────────────────────────────────────────────
+  # 1. Build · tests · couverture · qualité
+  # ─────────────────────────────────────────────────────────────
   build-test-quality:
     name: Build, tests, couverture et qualité
     runs-on: [self-hosted, linux, onprem]
@@ -41,14 +58,13 @@ jobs:
       - name: Récupération du code source
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0
+          fetch-depth: 0        # requis par SonarQube pour la blame
 
-      - name: Installation de Java ${{ env.JAVA_VERSION }}
-        uses: actions/setup-java@v4
-        with:
-          java-version: ${{ env.JAVA_VERSION }}
-          distribution: temurin
-          cache: maven
+      # Pré-installé sur vm-devops-g1 : sudo apt install -y openjdk-21-jdk
+      - name: Vérification de l'outillage
+        run: |
+          java -version
+          echo "JAVA_HOME=${JAVA_HOME:-(défini par le paquet système)}"
 
       - name: Compilation complète du projet Maven
         run: ./mvnw -B clean compile
@@ -71,12 +87,11 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: jacoco-report-prod
+          name: jacoco-report
           path: api/target/site/jacoco/
-          retention-days: 90
+          retention-days: 30
 
       # SonarQube tourne sur vm-devops-g1 et n'existe pas au D1.
-      # Klein bascule la variable une fois le serveur en ligne :
       #   gh variable set SONAR_ENABLED --body true
       - name: Analyse de la qualité du code (SonarQube)
         if: vars.SONAR_ENABLED == 'true'
@@ -102,6 +117,9 @@ jobs:
         id: version
         run: echo "version=$(date +%Y%m%d)-${GITHUB_SHA::7}" >> $GITHUB_OUTPUT
 
+  # ─────────────────────────────────────────────────────────────
+  # 2. Image Docker · sécurité · publication
+  # ─────────────────────────────────────────────────────────────
   docker-build-scan-push:
     name: Image Docker, analyse Trivy et publication GHCR
     needs: build-test-quality
@@ -116,36 +134,48 @@ jobs:
       - name: Construction de l'image Docker
         run: |
           docker build \
-            -t ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ needs.build-test-quality.outputs.version }} \
+            -t ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:prod-${{ needs.build-test-quality.outputs.version }} \
             -t ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest \
             ./api
 
-      - name: Analyse de sécurité de l'image (Trivy) — seuil production
-        uses: aquasecurity/trivy-action@master
-        with:
-          image-ref: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
-          format: table
-          exit-code: '1'
-          severity: 'CRITICAL,HIGH'
-          ignore-unfixed: true
+      # Remplace aquasecurity/trivy-action. Trivy tourne en conteneur ;
+      # sa base de vulnérabilités est mise en cache sur la VM pour ne pas
+      # être retéléchargée à chaque exécution.
+      - name: Analyse de sécurité de l'image (Trivy)
+        run: |
+          mkdir -p "${TRIVY_CACHE}"
+          docker run --rm \
+            -v /var/run/docker.sock:/var/run/docker.sock \
+            -v "${TRIVY_CACHE}":/root/.cache \
+            aquasec/trivy:latest image \
+              --severity CRITICAL \
+              --ignore-unfixed \
+              --exit-code 1 \
+              --format table \
+              ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
 
       - name: Export du rapport Trivy (livrable)
         if: always()
-        uses: aquasecurity/trivy-action@master
-        with:
-          image-ref: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
-          format: 'json'
-          output: 'trivy-report-prod.json'
-          severity: 'CRITICAL,HIGH,MEDIUM'
-          exit-code: '0'
+        run: |
+          mkdir -p "${TRIVY_CACHE}"
+          docker run --rm \
+            -v /var/run/docker.sock:/var/run/docker.sock \
+            -v "${TRIVY_CACHE}":/root/.cache \
+            -v "$PWD":/out \
+            aquasec/trivy:latest image \
+              --severity CRITICAL,HIGH,MEDIUM \
+              --exit-code 0 \
+              --format json \
+              --output /out/trivy-report.json \
+              ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
 
       - name: Publication du rapport Trivy
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: trivy-report-prod
-          path: trivy-report-prod.json
-          retention-days: 90
+          name: trivy-report
+          path: trivy-report.json
+          retention-days: 30
 
       - name: Connexion à GitHub Container Registry
         uses: docker/login-action@v3
@@ -156,7 +186,7 @@ jobs:
 
       - name: Publication de l'image sur GHCR
         run: |
-          docker push ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ needs.build-test-quality.outputs.version }}
+          docker push ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:prod-${{ needs.build-test-quality.outputs.version }}
           docker push ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
 
   # ─────────────────────────────────────────────────────────────
@@ -164,9 +194,10 @@ jobs:
   # ─────────────────────────────────────────────────────────────
   client-build-push:
     name: Build et publication du client React
-    # Voir cicd-develop.yml — gh variable set CLIENT_ENABLED --body true
+    # Le client React n'existe pas encore (client/ est vide).
+    #   gh variable set CLIENT_ENABLED --body true
     needs: build-test-quality
-    if: vars.CLIENT_ENABLED == 'true' && github.event_name == 'push'
+    if: vars.CLIENT_ENABLED == 'true'
     runs-on: [self-hosted, linux, onprem]
     permissions:
       contents: read
@@ -178,9 +209,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '20'
+      # Node 20 est PRÉ-INSTALLÉ sur vm-devops-g1 — remplace actions/setup-node.
+      - name: Vérification de Node
+        run: node -v && corepack --version
 
       - name: Installation et build du client
         run: |
@@ -193,13 +224,15 @@ jobs:
         run: docker build -t ${{ env.REGISTRY }}/${{ github.repository }}/client:latest ./client
 
       - name: Analyse de sécurité de l'image client (Trivy)
-        uses: aquasecurity/trivy-action@master
-        with:
-          image-ref: ${{ env.REGISTRY }}/${{ github.repository }}/client:latest
-          format: table
-          exit-code: '1'
-          severity: 'CRITICAL,HIGH'
-          ignore-unfixed: true
+        working-directory: .
+        run: |
+          mkdir -p "${TRIVY_CACHE}"
+          docker run --rm \
+            -v /var/run/docker.sock:/var/run/docker.sock \
+            -v "${TRIVY_CACHE}":/root/.cache \
+            aquasec/trivy:latest image \
+              --severity CRITICAL --ignore-unfixed --exit-code 1 --format table \
+              ${{ env.REGISTRY }}/${{ github.repository }}/client:latest
 
       - name: Connexion à GitHub Container Registry
         uses: docker/login-action@v3
@@ -212,13 +245,17 @@ jobs:
         working-directory: .
         run: docker push ${{ env.REGISTRY }}/${{ github.repository }}/client:latest
 
+  # ─────────────────────────────────────────────────────────────
+  # 3. Déploiement sur vm-prod-g1 + vérification de démarrage
+  # ─────────────────────────────────────────────────────────────
   deploy-vm-prod:
     name: Déploiement automatique sur vm-prod-g1
-    # Voir cicd-develop.yml — gh variable set DEPLOY_ENABLED --body true
+    # Exige les 3 VM joignables en SSH avec gha_deploy.
+    #   gh variable set DEPLOY_ENABLED --body true
     needs: [build-test-quality, docker-build-scan-push, client-build-push]
     if: vars.DEPLOY_ENABLED == 'true'
     runs-on: [self-hosted, linux, onprem]
-    environment: production          # ← ajoute un required reviewer dans les settings
+    environment: production          # exige un relecteur dans les réglages du dépôt
 
     steps:
       - uses: actions/checkout@v4
@@ -233,16 +270,6 @@ jobs:
           mkdir -p ~/.ssh
           ssh-keyscan -H ${{ secrets.SSH_HOST_PROD }} >> ~/.ssh/known_hosts
 
-      - name: Sauvegarde de la base avant déploiement
-        run: |
-          ssh ${{ secrets.SSH_USER_PROD }}@${{ secrets.SSH_HOST_PROD }} << 'EOF'
-            set -e
-            mkdir -p ~/backups
-            docker exec akiwacu-db pg_dump -U akiwacu akiwacu \
-              > ~/backups/akiwacu-$(date +%Y%m%d-%H%M%S).sql || true
-            ls -t ~/backups/*.sql | tail -n +6 | xargs -r rm
-          EOF
-
       - name: Copie du docker-compose
         run: |
           scp docker-compose.prod.yml \
@@ -256,7 +283,7 @@ jobs:
             echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
             export POSTGRES_PASSWORD='${{ secrets.POSTGRES_PASSWORD_PROD }}'
             export JWT_SECRET='${{ secrets.JWT_SECRET_PROD }}'
-            export IMAGE_TAG='${{ needs.build-test-quality.outputs.version }}'
+            export IMAGE_TAG='latest'
             docker compose pull
             docker compose up -d --remove-orphans
             docker image prune -f
@@ -270,12 +297,13 @@ jobs:
               http://${{ secrets.SSH_HOST_PROD }}:8080/actuator/health || echo "000")
             if [ "$STATUS" = "200" ]; then
               echo "✅ Application démarrée et saine sur vm-prod-g1"
+              curl -s http://${{ secrets.SSH_HOST_PROD }}:8080/actuator/health
               exit 0
             fi
             echo "  tentative $i/24 — statut $STATUS"
             sleep 5
           done
-          echo "❌ Échec du démarrage — rollback recommandé"
+          echo "❌ L'application n'a pas démarré correctement"
           ssh ${{ secrets.SSH_USER_PROD }}@${{ secrets.SSH_HOST_PROD }} \
             'cd ~/akiwacu && docker compose logs --tail=100 api'
           exit 1

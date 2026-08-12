@@ -3,8 +3,24 @@
 # Toute étape en échec interrompt le pipeline : le déploiement n'a lieu
 # que si TOUTES les étapes précédentes sont validées.
 #
-# Tourne sur le runner auto-hébergé (vm-devops-g1) car les étapes SonarQube et
-# déploiement SSH doivent joindre le LAN de l'université (voir playbook §3.2).
+# ─────────────────────────────────────────────────────────────────────
+# DEUX RÉGLAGES PROPRES AU RUNNER AUTO-HÉBERGÉ
+#
+# 1. L'OUTILLAGE EST PRÉ-INSTALLÉ SUR LA VM (JDK 21, Node 20, jq).
+#    actions/setup-java télécharge un JDK d'environ 180 Mo À CHAQUE exécution ;
+#    setup-node fait de même avec Node. Un runner GitHub part d'une image dont
+#    le cache d'outils est déjà chaud — le nôtre est une machine persistante :
+#    on installe une fois, on vérifie ensuite.
+#
+# 2. TRIVY TOURNE EN CONTENEUR, base de vulnérabilités en cache sur disque.
+#    trivy-action retélécharge son binaire (~50 Mo) à chaque exécution.
+#
+# Le reste utilise les actions standard. Le problème initial — expiration au
+# bout de 100 s sur codeload.github.com — venait du contrôle de congestion TCP
+# de la VM, pas de la bande passante : 16 Ko/s avant réglage, 49 Ko/s après
+# activation de BBR et élargissement des fenêtres. Voir
+# docs/ADR-002-RUNNER-AUTO-HEBERGE.md.
+# ─────────────────────────────────────────────────────────────────────
 
 name: CI/CD develop → vm-dev-g1
 
@@ -18,6 +34,7 @@ env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}/api
   JAVA_VERSION: '21'
+  TRIVY_CACHE: /opt/akiwacu/trivy-cache
 
 concurrency:
   group: develop-${{ github.ref }}
@@ -45,12 +62,11 @@ jobs:
         with:
           fetch-depth: 0        # requis par SonarQube pour la blame
 
-      - name: Installation de Java ${{ env.JAVA_VERSION }}
-        uses: actions/setup-java@v4
-        with:
-          java-version: ${{ env.JAVA_VERSION }}
-          distribution: temurin
-          cache: maven
+      # Pré-installé sur vm-devops-g1 : sudo apt install -y openjdk-21-jdk
+      - name: Vérification de l'outillage
+        run: |
+          java -version
+          echo "JAVA_HOME=${JAVA_HOME:-(défini par le paquet système)}"
 
       - name: Compilation complète du projet Maven
         run: ./mvnw -B clean compile
@@ -78,7 +94,6 @@ jobs:
           retention-days: 30
 
       # SonarQube tourne sur vm-devops-g1 et n'existe pas au D1.
-      # Klein bascule la variable une fois le serveur en ligne :
       #   gh variable set SONAR_ENABLED --body true
       - name: Analyse de la qualité du code (SonarQube)
         if: vars.SONAR_ENABLED == 'true'
@@ -115,7 +130,6 @@ jobs:
     permissions:
       contents: read
       packages: write
-      security-events: write
 
     steps:
       - uses: actions/checkout@v4
@@ -127,24 +141,36 @@ jobs:
             -t ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:develop \
             ./api
 
+      # Remplace aquasecurity/trivy-action. Trivy tourne en conteneur ;
+      # sa base de vulnérabilités est mise en cache sur la VM pour ne pas
+      # être retéléchargée à chaque exécution.
       - name: Analyse de sécurité de l'image (Trivy)
-        uses: aquasecurity/trivy-action@master
-        with:
-          image-ref: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:develop
-          format: table
-          exit-code: '1'              # interrompt le pipeline
-          severity: 'CRITICAL'        # passer à 'CRITICAL,HIGH' une fois stabilisé
-          ignore-unfixed: true
+        run: |
+          mkdir -p "${TRIVY_CACHE}"
+          docker run --rm \
+            -v /var/run/docker.sock:/var/run/docker.sock \
+            -v "${TRIVY_CACHE}":/root/.cache \
+            aquasec/trivy:latest image \
+              --severity CRITICAL \
+              --ignore-unfixed \
+              --exit-code 1 \
+              --format table \
+              ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:develop
 
       - name: Export du rapport Trivy (livrable)
         if: always()
-        uses: aquasecurity/trivy-action@master
-        with:
-          image-ref: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:develop
-          format: 'json'
-          output: 'trivy-report.json'
-          severity: 'CRITICAL,HIGH,MEDIUM'
-          exit-code: '0'
+        run: |
+          mkdir -p "${TRIVY_CACHE}"
+          docker run --rm \
+            -v /var/run/docker.sock:/var/run/docker.sock \
+            -v "${TRIVY_CACHE}":/root/.cache \
+            -v "$PWD":/out \
+            aquasec/trivy:latest image \
+              --severity CRITICAL,HIGH,MEDIUM \
+              --exit-code 0 \
+              --format json \
+              --output /out/trivy-report.json \
+              ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:develop
 
       - name: Publication du rapport Trivy
         if: always()
@@ -167,15 +193,11 @@ jobs:
           docker push ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:develop
 
   # ─────────────────────────────────────────────────────────────
-  # 3. Déploiement sur vm-dev-g1 + vérification de démarrage
-  # ─────────────────────────────────────────────────────────────
-  # ─────────────────────────────────────────────────────────────
   # 2 bis. Image du client React
   # ─────────────────────────────────────────────────────────────
   client-build-push:
     name: Build et publication du client React
     # Le client React n'existe pas encore (client/ est vide).
-    # À activer quand le squelette Vite sera en place :
     #   gh variable set CLIENT_ENABLED --body true
     needs: build-test-quality
     if: vars.CLIENT_ENABLED == 'true' && github.event_name == 'push'
@@ -190,9 +212,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '20'
+      # Node 20 est PRÉ-INSTALLÉ sur vm-devops-g1 — remplace actions/setup-node.
+      - name: Vérification de Node
+        run: node -v && corepack --version
 
       - name: Installation et build du client
         run: |
@@ -205,13 +227,15 @@ jobs:
         run: docker build -t ${{ env.REGISTRY }}/${{ github.repository }}/client:develop ./client
 
       - name: Analyse de sécurité de l'image client (Trivy)
-        uses: aquasecurity/trivy-action@master
-        with:
-          image-ref: ${{ env.REGISTRY }}/${{ github.repository }}/client:develop
-          format: table
-          exit-code: '1'
-          severity: 'CRITICAL'
-          ignore-unfixed: true
+        working-directory: .
+        run: |
+          mkdir -p "${TRIVY_CACHE}"
+          docker run --rm \
+            -v /var/run/docker.sock:/var/run/docker.sock \
+            -v "${TRIVY_CACHE}":/root/.cache \
+            aquasec/trivy:latest image \
+              --severity CRITICAL --ignore-unfixed --exit-code 1 --format table \
+              ${{ env.REGISTRY }}/${{ github.repository }}/client:develop
 
       - name: Connexion à GitHub Container Registry
         uses: docker/login-action@v3
@@ -224,10 +248,12 @@ jobs:
         working-directory: .
         run: docker push ${{ env.REGISTRY }}/${{ github.repository }}/client:develop
 
+  # ─────────────────────────────────────────────────────────────
+  # 3. Déploiement sur vm-dev-g1 + vérification de démarrage
+  # ─────────────────────────────────────────────────────────────
   deploy-vm-dev:
     name: Déploiement automatique sur vm-dev-g1
-    # Le déploiement exige les 3 VM joignables en SSH avec gha_deploy.
-    # Klein active quand les secrets SSH_* sont vérifiés :
+    # Exige les 3 VM joignables en SSH avec gha_deploy.
     #   gh variable set DEPLOY_ENABLED --body true
     needs: [build-test-quality, docker-build-scan-push, client-build-push]
     if: vars.DEPLOY_ENABLED == 'true' && github.event_name == 'push'

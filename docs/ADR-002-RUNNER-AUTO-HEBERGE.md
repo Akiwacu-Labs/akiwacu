@@ -70,6 +70,61 @@ espace de travail entre les jobs. Deux conséquences :
   remplit en quelques jours ;
 - ne jamais écrire de secret en clair dans le workspace : il survit au job.
 
+**Le réglage TCP de la VM était le vrai goulot — pas la bande passante.**
+
+Symptôme : `Prepare all required actions` échouait sur
+`HttpClient.Timeout of 100 seconds elapsing`, trois tentatives, puis abandon.
+Le runner télécharge **toutes** les actions avant d'exécuter la moindre étape :
+une seule action injoignable fait échouer le job entier, et `continue-on-error`
+n'y peut rien puisque l'échec précède les étapes.
+
+La tentation était de supprimer les actions tierces. Mesurer d'abord a évité
+une fausse solution :
+
+| Mesure depuis `vm-devops-g1` | Résultat |
+|---|---|
+| `codeload.github.com`, 1 connexion | **16 Ko/s** — 2,2 Mo en 135 s, au-delà du délai de 100 s |
+| `codeload.github.com`, 4 connexions | **188 Ko/s cumulés** (74 + 46 + 45 + 22) |
+| `speed.cloudflare.com`, 1 connexion | **562 Ko/s** |
+| IPv6 · MTU 1500 · DNS · perte de paquets | aucun problème · RTT 500 ms vers Francfort |
+
+Diagnostic : la liaison délivre 4,5 Mbit/s. Une **connexion unique** vers
+GitHub plafonnait à 16 Ko/s, soit une fenêtre TCP d'environ 8 Ko sur un RTT de
+0,5 s — le débit d'un flux vaut fenêtre ÷ latence. Sur un chemin à forte
+latence, le contrôle de congestion par défaut ne fait jamais croître la fenêtre.
+
+Correctif — `/etc/sysctl.d/99-akiwacu-net.conf` :
+
+```
+net.core.default_qdisc          = fq
+net.ipv4.tcp_congestion_control = bbr
+net.core.rmem_max               = 16777216
+net.core.wmem_max               = 16777216
+net.ipv4.tcp_rmem               = 4096 87380 16777216
+net.ipv4.tcp_wmem               = 4096 65536 16777216
+```
+
+**Résultat : 16 Ko/s → 49 Ko/s**, le même fichier passe de 135 s à 45 s, sous
+le délai. Les actions standard sont conservées.
+
+Deux ajustements demeurent, justifiés par la mesure et non par le symptôme :
+
+- **L'outillage est pré-installé sur la VM** (JDK 21, Node 20, jq).
+  `setup-java` téléchargerait 180 Mo à chaque exécution — une heure à 49 Ko/s.
+  Un runner GitHub part d'une image dont le cache d'outils est chaud ; le nôtre
+  est une machine persistante, donc on installe une fois.
+- **Trivy tourne en conteneur**, base de vulnérabilités en cache sur disque.
+  `trivy-action` retélécharge son binaire (~50 Mo) à chaque exécution.
+
+Ce qui reste téléchargé l'est **une seule fois** : `~/.m2` et
+`~/actions-runner/_work/_actions/` persistent entre les jobs.
+
+**La leçon, et c'est elle qui vaut d'être dite à la soutenance :** un délai
+dépassé ressemble à un problème de débit. Ici, le débit était bon et le
+paramétrage TCP mauvais. Supprimer les actions aurait « réparé » le pipeline
+en masquant la cause, et le même plafond aurait frappé Maven, Docker et
+SonarQube ensuite.
+
 **Le dépôt est public.** Un runner auto-hébergé sur un dépôt public accepterait, sans
 précaution, d'exécuter le code d'une PR venue de l'extérieur sur notre machine. Le
 déclenchement est donc limité aux branches du dépôt, et l'approbation manuelle des

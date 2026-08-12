@@ -307,6 +307,37 @@ soutenance. Test imposé : `shouldNotAccessDataFromAnotherTontine()`.
 
 ---
 
+### D-25 — Intérêts : taux forfaitaire appliqué une fois
+
+**Décidé :** `montantDu = montantAccorde + (montantAccorde × tauxInteret / 100)`,
+arrondi `HALF_UP` à 2 décimales. `tauxInteret` vaut 0 par défaut.
+
+**Envisagé d'abord :** rien — l'énoncé ne définit pas la formule, et la première
+version du modèle de données disait seulement « montantAccorde + intérêts ».
+
+**Motif :** un trésorier de tontine calcule de tête. Une capitalisation ou un prorata
+mensuel ajouterait un mode de défaillance sans rapporter un point.
+
+**Conséquence :** `soldeRestant()` et `estEnRetard()` en dépendent directement.
+**R6 porte sur `montantDemande`**, le capital demandé — pas sur `montantDu`.
+Gloria confirme avant de construire `PretService` dessus.
+
+---
+
+### D-26 — Numérotation des reçus par séquence PostgreSQL
+
+**Décidé :** séquence `seq_numero_recu`, format `REC-<année>-<6 chiffres>`.
+
+**Envisagé d'abord :** un compteur calculé en Java.
+
+**Motif :** deux trésoriers émettant un reçu à la même seconde obtiendraient le même
+numéro. L'énoncé exige une numérotation séquentielle vérifiable.
+
+**Conséquence :** le nom `seq_numero_recu` fait partie du contrat entre la migration
+et le `RecuService` de Juste. Il ne se renomme pas.
+
+---
+
 ## Pilotage
 
 ### D-21 — Scrum complet, trois sprints
