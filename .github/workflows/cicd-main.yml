@@ -12,8 +12,15 @@
 #    le cache d'outils est déjà chaud — le nôtre est une machine persistante :
 #    on installe une fois, on vérifie ensuite.
 #
-# 2. TRIVY TOURNE EN CONTENEUR, base de vulnérabilités en cache sur disque.
-#    trivy-action retélécharge son binaire (~50 Mo) à chaque exécution.
+# 2. TRIVY TOURNE EN CONTENEUR, base de vulnérabilités AMORCÉE SUR LA VM.
+#    trivy-action retélécharge son binaire (~50 Mo) à chaque exécution, et
+#    Trivy lui-même retélécharge sa base (107 Mo) dès qu'elle a plus de 24 h.
+#    À 60 Ko/s, 107 Mo demandent une demi-heure : Trivy abandonne à 5 minutes.
+#    La base est donc amorcée hors CI, une fois, et le job tourne avec
+#    --skip-db-update. Refresh hebdomadaire, voir docs/RUNBOOK-TRIVY.md.
+#    --pkg-types os : on n'analyse que les paquets système. L'analyse des
+#    dépendances Java exigerait la trivy-java-db (~700 Mo), hors de portée
+#    de cette liaison. Limitation assumée, voir DECISIONS.md D-30.
 #
 # Le reste utilise les actions standard. Le problème initial — expiration au
 # bout de 100 s sur codeload.github.com — venait du contrôle de congestion TCP
@@ -157,11 +164,22 @@ jobs:
       # être retéléchargée à chaque exécution.
       - name: Analyse de sécurité de l'image (Trivy)
         run: |
-          mkdir -p "${TRIVY_CACHE}"
+          # La base de vulnérabilités (107 Mo) est AMORCÉE UNE FOIS sur la VM,
+          # jamais téléchargée pendant un job : sur cette liaison, 107 Mo à 60 Ko/s
+          # demandent une demi-heure, et Trivy abandonne au bout de 5 minutes.
+          #   docker run --rm -v /home/runner/.trivy-cache:/root/.cache \
+          #     aquasec/trivy:latest image --download-db-only --timeout 60m
+          if [ ! -f "${TRIVY_CACHE}/trivy/db/trivy.db" ]; then
+            echo "::error::Base Trivy absente de ${TRIVY_CACHE}/trivy/db/ — amorcer la base sur la VM (voir commentaire ci-dessus)."
+            exit 1
+          fi
           docker run --rm \
             -v /var/run/docker.sock:/var/run/docker.sock \
             -v "${TRIVY_CACHE}":/root/.cache \
             aquasec/trivy:latest image \
+              --skip-db-update \
+              --pkg-types os \
+              --timeout 10m \
               --severity CRITICAL \
               --ignore-unfixed \
               --exit-code 1 \
@@ -171,12 +189,23 @@ jobs:
       - name: Export du rapport Trivy (livrable)
         if: always()
         run: |
-          mkdir -p "${TRIVY_CACHE}"
+          # La base de vulnérabilités (107 Mo) est AMORCÉE UNE FOIS sur la VM,
+          # jamais téléchargée pendant un job : sur cette liaison, 107 Mo à 60 Ko/s
+          # demandent une demi-heure, et Trivy abandonne au bout de 5 minutes.
+          #   docker run --rm -v /home/runner/.trivy-cache:/root/.cache \
+          #     aquasec/trivy:latest image --download-db-only --timeout 60m
+          if [ ! -f "${TRIVY_CACHE}/trivy/db/trivy.db" ]; then
+            echo "::error::Base Trivy absente de ${TRIVY_CACHE}/trivy/db/ — amorcer la base sur la VM (voir commentaire ci-dessus)."
+            exit 1
+          fi
           docker run --rm \
             -v /var/run/docker.sock:/var/run/docker.sock \
             -v "${TRIVY_CACHE}":/root/.cache \
             -v "$PWD":/out \
             aquasec/trivy:latest image \
+              --skip-db-update \
+              --pkg-types os \
+              --timeout 10m \
               --severity CRITICAL,HIGH,MEDIUM \
               --exit-code 0 \
               --format json \
@@ -242,11 +271,22 @@ jobs:
       - name: Analyse de sécurité de l'image client (Trivy)
         working-directory: .
         run: |
-          mkdir -p "${TRIVY_CACHE}"
+          # La base de vulnérabilités (107 Mo) est AMORCÉE UNE FOIS sur la VM,
+          # jamais téléchargée pendant un job : sur cette liaison, 107 Mo à 60 Ko/s
+          # demandent une demi-heure, et Trivy abandonne au bout de 5 minutes.
+          #   docker run --rm -v /home/runner/.trivy-cache:/root/.cache \
+          #     aquasec/trivy:latest image --download-db-only --timeout 60m
+          if [ ! -f "${TRIVY_CACHE}/trivy/db/trivy.db" ]; then
+            echo "::error::Base Trivy absente de ${TRIVY_CACHE}/trivy/db/ — amorcer la base sur la VM (voir commentaire ci-dessus)."
+            exit 1
+          fi
           docker run --rm \
             -v /var/run/docker.sock:/var/run/docker.sock \
             -v "${TRIVY_CACHE}":/root/.cache \
             aquasec/trivy:latest image \
+              --skip-db-update \
+              --pkg-types os \
+              --timeout 10m \
               --severity CRITICAL --ignore-unfixed --exit-code 1 --format table \
               ${IMAGE_CLIENT}:latest
 
