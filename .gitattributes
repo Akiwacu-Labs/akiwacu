@@ -1,0 +1,37 @@
+# Fins de ligne — quatre membres sur cinq travaillent sous Windows.
+#
+# Git for Windows convertit LF en CRLF au checkout. Sans ce fichier, un script
+# ou un wrapper commité avec des CRLF échoue sur le runner Linux avec
+#   /usr/bin/env: 'bash\r': No such file or directory
+# ou
+#   ./import.sh: /bin/bash^M: bad interpreter
+# — une erreur qui ne désigne jamais la personne qui l'a causée.
+
+# Par défaut : Git normalise en LF dans le dépôt, décide au checkout.
+*                   text=auto
+
+# ── Doivent TOUJOURS être en LF, ils s'exécutent sur Linux ────────────
+*.sh                text eol=lf
+mvnw                text eol=lf
+Dockerfile          text eol=lf
+*.Dockerfile        text eol=lf
+*.yml               text eol=lf
+*.yaml              text eol=lf
+*.sql               text eol=lf
+.gitattributes      text eol=lf
+.gitignore          text eol=lf
+.env*               text eol=lf
+
+# ── Spécifiques à Windows : CRLF assumé ───────────────────────────────
+*.cmd               text eol=crlf
+*.bat               text eol=crlf
+mvnw.cmd            text eol=crlf
+
+# ── Binaires : jamais de conversion ───────────────────────────────────
+*.jar               binary
+*.png               binary
+*.jpg               binary
+*.pdf               binary
+*.zip               binary
+*.woff              binary
+*.woff2             binary
