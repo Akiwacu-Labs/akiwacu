@@ -20,6 +20,7 @@ comme le code.
 | comprendre **pourquoi** une chose a été décidée ainsi | [`DECISIONS.md`](DECISIONS.md) |
 | **remonter le projet depuis zéro** | [`SETUP-DEPUIS-ZERO.md`](SETUP-DEPUIS-ZERO.md) |
 | l'étape Trivy échoue, ou la base est à rafraîchir | [`RUNBOOK-TRIVY.md`](RUNBOOK-TRIVY.md) |
+| savoir **quel secret existe, où et qui le pose** | [`INVENTAIRE-SECRETS.md`](INVENTAIRE-SECRETS.md) |
 | rédiger ton chapitre du rapport | [`LIVRABLES.md`](LIVRABLES.md) |
 | préparer une réponse de soutenance | [`DECISIONS.md`](DECISIONS.md) + les deux ADR |
 

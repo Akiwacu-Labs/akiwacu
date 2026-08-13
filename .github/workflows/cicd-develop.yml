@@ -318,10 +318,15 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # PAS webfactory/ssh-agent : le runner purge _actions/ à chaque job,
+      # l'action serait retéléchargée à chaque exécution — exactement ce qui
+      # faisait échouer docker/login-action et upload-artifact. Écrire une clé
+      # dans un fichier tient en trois lignes et ne dépend de rien.
       - name: Chargement de la clé SSH
-        uses: webfactory/ssh-agent@v0.9.0
-        with:
-          ssh-private-key: ${{ secrets.SSH_KEY_DEV }}
+        run: |
+          mkdir -p ~/.ssh && chmod 700 ~/.ssh
+          printf '%s\n' "${{ secrets.SSH_KEY_DEV }}" > ~/.ssh/gha_deploy
+          chmod 600 ~/.ssh/gha_deploy
 
       - name: Ajout de vm-dev-g1 aux hôtes connus
         run: |
@@ -330,12 +335,12 @@ jobs:
 
       - name: Copie du docker-compose
         run: |
-          scp docker-compose.dev.yml \
+          scp -i ~/.ssh/gha_deploy docker-compose.dev.yml \
             ${{ secrets.SSH_USER_DEV }}@${{ secrets.SSH_HOST_DEV }}:~/akiwacu/docker-compose.yml
 
       - name: Déploiement de l'application
         run: |
-          ssh ${{ secrets.SSH_USER_DEV }}@${{ secrets.SSH_HOST_DEV }} << 'EOF'
+          ssh -i ~/.ssh/gha_deploy ${{ secrets.SSH_USER_DEV }}@${{ secrets.SSH_HOST_DEV }} << 'EOF'
             set -e
             cd ~/akiwacu
             echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
@@ -362,6 +367,12 @@ jobs:
             sleep 5
           done
           echo "❌ L'application n'a pas démarré correctement"
-          ssh ${{ secrets.SSH_USER_DEV }}@${{ secrets.SSH_HOST_DEV }} \
+          ssh -i ~/.ssh/gha_deploy ${{ secrets.SSH_USER_DEV }}@${{ secrets.SSH_HOST_DEV }} \
             'cd ~/akiwacu && docker compose logs --tail=100 api'
           exit 1
+
+      # La clé ne survit pas au job : le runner est une machine persistante,
+      # partagée par cinq personnes et par tous les workflows du dépôt.
+      - name: Effacement de la clé SSH
+        if: always()
+        run: rm -f ~/.ssh/gha_deploy

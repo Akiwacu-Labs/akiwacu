@@ -327,6 +327,49 @@ si la base est absente — plutôt qu'au bout de sept minutes d'expiration.
 
 ---
 
+### D-31 — Runner persistant, pas éphémère · l'isolation passe par un contrôle d'accès
+
+**Décidé :** le runner reste **persistant**. Pas de `--ephemeral`, pas de runner
+conteneurisé recréé à chaque job. L'isolation est obtenue par une règle d'accès :
+*Settings → Actions → General → Fork pull request workflows from outside
+collaborators → **Require approval for all outside collaborators***.
+
+**Alternative examinée :** un runner éphémère se détruit après chaque job. C'est la
+recommandation courante, et elle supprime effectivement toute pollution d'état entre
+deux exécutions.
+
+**Motif du rejet — la mesure, pas la préférence.** Tout ce qui rend notre pipeline
+possible en 3 min 51 s vit sur une machine qui ne disparaît pas :
+
+| Sur le runner persistant | Coût de réacquisition à chaque job |
+|---|---|
+| Base de vulnérabilités Trivy (1,2 Go) | ~29 min (D-30) |
+| JDK 21 et Node 20 pré-installés | ~180 Mo |
+| Cache de couches Docker, images de base | plusieurs minutes |
+| `akiwacu-artifacts/` | perdu — les livrables du D7 |
+
+À 60 Ko/s, l'éphémère ne rend pas le pipeline plus lent : il le rend impossible.
+La recommandation suppose une liaison où reprovisionner est gratuit. Sur la nôtre,
+ADR-002 et D-30 établissent le contraire, chiffres à l'appui.
+
+**Ce que le rejet ne dit pas.** Le risque désigné est réel, mais ce n'est pas la
+pollution d'état entre nos cinq jobs — c'est le dépôt **public** couplé à un runner
+sur le réseau de l'université : un inconnu ouvre une PR depuis un fork et son code
+s'exécute sur `vm-devops-g1`. C'est le scénario contre lequel GitHub met
+explicitement en garde.
+
+**Traité par le contrôle d'accès**, qui répond exactement à cette menace, pour un
+réglage et zéro minute d'indisponibilité. Nos cinq membres partagent déjà la
+machine : les isoler les uns des autres ne protège de rien.
+
+**À noter :** le runner purge `_actions/` au début de chaque job — constaté au D2.
+Une partie de l'isolation promise par l'éphémère est donc déjà acquise.
+
+**Réexamen :** si le projet obtient une liaison décente, l'éphémère redevient le bon
+choix. La décision dépend d'une mesure de débit, pas d'une doctrine.
+
+---
+
 ## Applicatif## Applicatif
 
 ### D-18 — Client React + TypeScript, séparé de l'API
