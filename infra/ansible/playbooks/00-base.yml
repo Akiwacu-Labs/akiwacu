@@ -1,0 +1,58 @@
+---
+# Socle commun aux 3 VM. Idempotent : peut être rejoué sans risque.
+- name: Socle commun à toutes les VM
+  hosts: all
+  become: true
+
+  tasks:
+    - name: Mettre à jour le cache APT
+      ansible.builtin.apt:
+        update_cache: true
+        cache_valid_time: 3600
+
+    - name: Installer les paquets de base
+      ansible.builtin.apt:
+        name:
+          - curl
+          - git
+          - jq
+          - htop
+          - ufw
+          - ca-certificates
+          - gnupg
+          - python3-docker
+          - qemu-guest-agent
+        state: present
+
+    - name: Fuseau horaire Bujumbura
+      community.general.timezone:
+        name: Africa/Bujumbura
+
+    - name: Installer Docker
+      ansible.builtin.shell: curl -fsSL https://get.docker.com | sh
+      args:
+        creates: /usr/bin/docker
+
+    - name: Ajouter deployer au groupe docker
+      ansible.builtin.user:
+        name: deployer
+        groups: docker
+        append: true
+
+    - name: Démarrer Docker au boot
+      ansible.builtin.systemd:
+        name: docker
+        enabled: true
+        state: started
+
+    - name: "Pare-feu — autoriser SSH avant toute activation"
+      community.general.ufw:
+        rule: allow
+        port: '22'
+        proto: tcp
+
+    - name: "Pare-feu — activer"
+      community.general.ufw:
+        state: enabled
+        policy: deny
+        direction: incoming

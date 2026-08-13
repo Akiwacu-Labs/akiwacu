@@ -1,0 +1,57 @@
+---
+# SonarQube sur vm-devops-g1.
+# Exige group_vars/all/vault.yml (chiffré) contenant sonar_db_password.
+- name: SonarQube
+  hosts: devops
+  become: true
+
+  tasks:
+    # SonarQube embarque Elasticsearch : sans ces réglages, il refuse de démarrer.
+    - name: Réglages noyau exigés par Elasticsearch
+      ansible.posix.sysctl:
+        name: "{{ item.k }}"
+        value: "{{ item.v }}"
+        state: present
+        reload: true
+      loop:
+        - { k: vm.max_map_count, v: '524288' }
+        - { k: fs.file-max, v: '131072' }
+
+    - name: Réseau Docker dédié à SonarQube
+      community.docker.docker_network:
+        name: sonarnet
+
+    - name: Base PostgreSQL de SonarQube
+      community.docker.docker_container:
+        name: sonar-db
+        image: postgres:16-alpine
+        restart_policy: unless-stopped
+        networks:
+          - name: sonarnet
+        env:
+          POSTGRES_USER: sonar
+          POSTGRES_PASSWORD: "{{ sonar_db_password }}"
+          POSTGRES_DB: sonar
+        volumes: ["sonar-db:/var/lib/postgresql/data"]
+
+    - name: SonarQube
+      community.docker.docker_container:
+        name: sonarqube
+        image: sonarqube:community
+        restart_policy: unless-stopped
+        networks:
+          - name: sonarnet
+        ports: ["9000:9000"]
+        env:
+          SONAR_JDBC_URL: jdbc:postgresql://sonar-db:5432/sonar
+          SONAR_JDBC_USERNAME: sonar
+          SONAR_JDBC_PASSWORD: "{{ sonar_db_password }}"
+        volumes:
+          - "sonar-data:/opt/sonarqube/data"
+          - "sonar-ext:/opt/sonarqube/extensions"
+
+    - name: Ouvrir le port SonarQube
+      community.general.ufw:
+        rule: allow
+        port: '9000'
+        proto: tcp

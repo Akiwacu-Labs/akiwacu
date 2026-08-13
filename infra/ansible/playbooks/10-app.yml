@@ -1,0 +1,28 @@
+---
+# Prépare vm-dev-g1 et vm-prod-g1 à recevoir les déploiements GitHub Actions.
+- name: Préparer les hôtes applicatifs
+  hosts: app
+  become: true
+
+  tasks:
+    - name: Créer le dossier de déploiement
+      ansible.builtin.file:
+        path: /home/deployer/akiwacu
+        state: directory
+        owner: deployer
+        group: deployer
+        mode: '0755'
+
+    - name: Ouvrir les ports applicatifs
+      community.general.ufw:
+        rule: allow
+        port: "{{ item }}"
+        proto: tcp
+      loop: ['80', '8080', '9100']
+
+    - name: Installer node-exporter (métriques système pour Prometheus)
+      community.docker.docker_container:
+        name: node-exporter
+        image: prom/node-exporter:latest
+        restart_policy: unless-stopped
+        ports: ["9100:9100"]

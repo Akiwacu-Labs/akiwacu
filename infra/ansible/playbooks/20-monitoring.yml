@@ -1,0 +1,47 @@
+---
+# Prometheus + Grafana sur vm-devops-g1.
+# Exige group_vars/all/vault.yml (chiffré) contenant grafana_password.
+- name: Prometheus et Grafana
+  hosts: devops
+  become: true
+
+  tasks:
+    - name: Dossiers de configuration
+      ansible.builtin.file:
+        path: "/opt/{{ item }}"
+        state: directory
+        mode: '0755'
+      loop: [prometheus, grafana]
+
+    # playbook_dir = infra/ansible/playbooks → trois niveaux pour la racine du dépôt
+    - name: Déposer la configuration Prometheus
+      ansible.builtin.copy:
+        src: "{{ playbook_dir }}/../../../monitoring/prometheus.yml"
+        dest: /opt/prometheus/prometheus.yml
+        mode: '0644'
+
+    - name: Lancer Prometheus
+      community.docker.docker_container:
+        name: prometheus
+        image: prom/prometheus:latest
+        restart_policy: unless-stopped
+        ports: ["9090:9090"]
+        volumes:
+          - "/opt/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro"
+
+    - name: Lancer Grafana
+      community.docker.docker_container:
+        name: grafana
+        image: grafana/grafana:latest
+        restart_policy: unless-stopped
+        ports: ["3000:3000"]
+        env:
+          GF_SECURITY_ADMIN_PASSWORD: "{{ grafana_password }}"
+        volumes: ["grafana-data:/var/lib/grafana"]
+
+    - name: Ouvrir les ports Prometheus et Grafana
+      community.general.ufw:
+        rule: allow
+        port: "{{ item }}"
+        proto: tcp
+      loop: ['9090', '3000']
