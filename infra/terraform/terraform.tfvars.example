@@ -1,0 +1,8 @@
+# Copier en terraform.tfvars et remplir. terraform.tfvars n'est JAMAIS commité.
+proxmox_endpoint  = "https://192.168.0.10:8006/"
+proxmox_api_token = "terraform@pve!provider=xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+proxmox_node      = "pve"
+template_vm_id    = 9000
+datastore_id      = "local-lvm"
+gateway           = "192.168.0.1"
+ssh_public_key    = "ssh-ed25519 AAAA... gha-deploy-akiwacu"
