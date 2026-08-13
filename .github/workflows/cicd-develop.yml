@@ -34,7 +34,7 @@ env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}/api
   JAVA_VERSION: '21'
-  TRIVY_CACHE: /opt/akiwacu/trivy-cache
+  TRIVY_CACHE: /home/runner/.trivy-cache
 
 concurrency:
   group: develop-${{ github.ref }}
@@ -136,9 +136,12 @@ jobs:
 
       - name: Construction de l'image Docker
         run: |
+          IMAGE_NAME_LOWER="${{ env.IMAGE_NAME }}"
+          IMAGE_NAME_LOWER="${IMAGE_NAME_LOWER@L}"  # Bash 4+ lowercase
+          
           docker build \
-            -t ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:dev-${{ needs.build-test-quality.outputs.version }} \
-            -t ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:develop \
+            -t ${{ env.REGISTRY }}/${IMAGE_NAME_LOWER,,}:dev-${{ needs.build-test-quality.outputs.version }} \
+            -t ${{ env.REGISTRY }}/${IMAGE_NAME_LOWER,,}:develop \
             ./api
 
       # Remplace aquasecurity/trivy-action. Trivy tourne en conteneur ;
