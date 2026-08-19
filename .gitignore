@@ -48,6 +48,10 @@ infra/ansible/*.vault_pass
 .claude/settings.local.json
 .claude/*.local.*
 
+# Note de travail personnelle pour un agent Codex (equivalent local de
+# ~/.claude/CLAUDE.md) — pas partagee, comme le reste de cette section.
+/AGENTS.md
+
 # Rapports générés
 /logs/
 *.log
