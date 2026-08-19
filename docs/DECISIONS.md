@@ -553,6 +553,25 @@ autre que la création du dépôt.
 
 ---
 
+### D-32 — JWT : jjwt plutôt que le starter oauth2-resource-server
+
+**Décidé par Andy, chef de projet et responsable sécurité :** `io.jsonwebtoken`
+(jjwt-api/impl/jackson, 0.12.x), signature HS256, claims `sub` (email),
+`utilisateurId`, `tontineId`, `roles`.
+
+**Motif :** `spring-boot-starter-oauth2-resource-server` (NimbusJwtEncoder/Decoder)
+aurait aussi évité une dépendance nouvelle, mais amène toute la configuration
+OAuth2 avec elle. jjwt s'écrit en style direct
+(`Jwts.builder().claim(...).signWith(cle).compact()`) : chaque étudiant peut le
+relire et l'expliquer à l'oral sans connaître OAuth2.
+
+**Conséquence :** `TenantContext` (R1) lit `tontineId` depuis ce claim, jamais
+du corps de la requête — voir D-20. `JwtAuthenticationFilter` pose à la fois
+l'`Authentication` Spring Security et le `TenantContext`, et nettoie ce dernier
+dans un `finally` (fuite inter-requêtes sinon, Tomcat réutilisant ses threads).
+
+---
+
 ## Ce qui a été délibérément écarté
 
 | Écarté | Motif |
