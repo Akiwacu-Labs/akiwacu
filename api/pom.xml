@@ -20,6 +20,7 @@
   <properties>
     <java.version>21</java.version>
     <springdoc.version>2.6.0</springdoc.version>
+    <jjwt.version>0.12.6</jjwt.version>
     <jacoco.version>0.8.12</jacoco.version>
     <!-- Seuil de couverture. Le socle n'a presque pas de tests : il DOIT rester
          à 0.00 tant que la PR socle n'est pas mergée, sinon elle ne peut pas passer.
@@ -39,6 +40,27 @@
     <dependency>
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-security</artifactId>
+    </dependency>
+
+    <!-- JWT (D-32) : émission/validation des jetons. jjwt plutôt que le starter
+         oauth2-resource-server — API directe (Jwts.builder()...), plus simple
+         à justifier à l'oral que la configuration OAuth2 complète. -->
+    <dependency>
+      <groupId>io.jsonwebtoken</groupId>
+      <artifactId>jjwt-api</artifactId>
+      <version>${jjwt.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>io.jsonwebtoken</groupId>
+      <artifactId>jjwt-impl</artifactId>
+      <version>${jjwt.version}</version>
+      <scope>runtime</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.jsonwebtoken</groupId>
+      <artifactId>jjwt-jackson</artifactId>
+      <version>${jjwt.version}</version>
+      <scope>runtime</scope>
     </dependency>
     <dependency>
       <groupId>org.springframework.boot</groupId>
