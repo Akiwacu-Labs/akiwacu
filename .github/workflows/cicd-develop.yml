@@ -12,8 +12,15 @@
 #    le cache d'outils est déjà chaud — le nôtre est une machine persistante :
 #    on installe une fois, on vérifie ensuite.
 #
-# 2. TRIVY TOURNE EN CONTENEUR, base de vulnérabilités en cache sur disque.
-#    trivy-action retélécharge son binaire (~50 Mo) à chaque exécution.
+# 2. TRIVY TOURNE EN CONTENEUR, base de vulnérabilités AMORCÉE SUR LA VM.
+#    trivy-action retélécharge son binaire (~50 Mo) à chaque exécution, et
+#    Trivy lui-même retélécharge sa base (107 Mo) dès qu'elle a plus de 24 h.
+#    À 60 Ko/s, 107 Mo demandent une demi-heure : Trivy abandonne à 5 minutes.
+#    La base est donc amorcée hors CI, une fois, et le job tourne avec
+#    --skip-db-update. Refresh hebdomadaire, voir docs/RUNBOOK-TRIVY.md.
+#    --pkg-types os : on n'analyse que les paquets système. L'analyse des
+#    dépendances Java exigerait la trivy-java-db (~700 Mo), hors de portée
+#    de cette liaison. Limitation assumée, voir DECISIONS.md D-30.
 #
 # Le reste utilise les actions standard. Le problème initial — expiration au
 # bout de 100 s sur codeload.github.com — venait du contrôle de congestion TCP
@@ -85,13 +92,20 @@ jobs:
         if: vars.COVERAGE_GATE == 'true'
         run: ./mvnw -B jacoco:check
 
-      - name: Publication du rapport de couverture
+      # PAS actions/upload-artifact : le runner purge _actions/ à CHAQUE job,
+      # donc l'action serait retéléchargée (2,2 Mo) à chaque exécution, avec un
+      # délai de 100 s sur une liaison qui descend parfois à 16 Ko/s.
+      # Les artefacts vivent sur la VM, qui est persistante.
+      # Récupération au D7 : scp -r deployer@192.168.0.52:/home/runner/akiwacu-artifacts .
+      - name: Archivage du rapport de couverture
         if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: jacoco-report
-          path: api/target/site/jacoco/
-          retention-days: 30
+        working-directory: .
+        run: |
+          DEST="/home/runner/akiwacu-artifacts/run-${GITHUB_RUN_NUMBER}/jacoco"
+          mkdir -p "$DEST"
+          cp -r api/target/site/jacoco/. "$DEST"/ 2>/dev/null || echo "aucun rapport"
+          ln -sfn "/home/runner/akiwacu-artifacts/run-${GITHUB_RUN_NUMBER}" /home/runner/akiwacu-artifacts/derniere
+          echo "JaCoCo → $DEST"
 
       # SonarQube tourne sur vm-devops-g1 et n'existe pas au D1.
       #   gh variable set SONAR_ENABLED --body true
@@ -134,14 +148,18 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # GHCR n'accepte que des minuscules et l'organisation s'écrit « Akiwacu-Labs ».
+      # On normalise UNE seule fois : $IMAGE est ensuite vu par toutes les étapes
+      # du job via GITHUB_ENV — build, Trivy et push utilisent la même valeur.
+      - name: Normalisation du nom d'image
+        run: |
+          echo "IMAGE=${REGISTRY}/$(echo '${{ env.IMAGE_NAME }}' | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
+
       - name: Construction de l'image Docker
         run: |
-          IMAGE_NAME_LOWER="${{ env.IMAGE_NAME }}"
-          IMAGE_NAME_LOWER="${IMAGE_NAME_LOWER@L}"  # Bash 4+ lowercase
-          
           docker build \
-            -t ${{ env.REGISTRY }}/${IMAGE_NAME_LOWER,,}:dev-${{ needs.build-test-quality.outputs.version }} \
-            -t ${{ env.REGISTRY }}/${IMAGE_NAME_LOWER,,}:develop \
+            -t ${IMAGE}:dev-${{ needs.build-test-quality.outputs.version }} \
+            -t ${IMAGE}:develop \
             ./api
 
       # Remplace aquasecurity/trivy-action. Trivy tourne en conteneur ;
@@ -149,51 +167,72 @@ jobs:
       # être retéléchargée à chaque exécution.
       - name: Analyse de sécurité de l'image (Trivy)
         run: |
-          mkdir -p "${TRIVY_CACHE}"
+          # La base de vulnérabilités (107 Mo) est AMORCÉE UNE FOIS sur la VM,
+          # jamais téléchargée pendant un job : sur cette liaison, 107 Mo à 60 Ko/s
+          # demandent une demi-heure, et Trivy abandonne au bout de 5 minutes.
+          #   docker run --rm -v /home/runner/.trivy-cache:/root/.cache \
+          #     aquasec/trivy:latest image --download-db-only --timeout 60m
+          if [ ! -f "${TRIVY_CACHE}/trivy/db/trivy.db" ]; then
+            echo "::error::Base Trivy absente de ${TRIVY_CACHE}/trivy/db/ — amorcer la base sur la VM (voir commentaire ci-dessus)."
+            exit 1
+          fi
           docker run --rm \
             -v /var/run/docker.sock:/var/run/docker.sock \
             -v "${TRIVY_CACHE}":/root/.cache \
             aquasec/trivy:latest image \
+              --skip-db-update \
+              --pkg-types os \
+              --timeout 10m \
               --severity CRITICAL \
               --ignore-unfixed \
               --exit-code 1 \
               --format table \
-              ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:develop
+              ${IMAGE}:develop
 
       - name: Export du rapport Trivy (livrable)
         if: always()
         run: |
-          mkdir -p "${TRIVY_CACHE}"
+          # La base de vulnérabilités (107 Mo) est AMORCÉE UNE FOIS sur la VM,
+          # jamais téléchargée pendant un job : sur cette liaison, 107 Mo à 60 Ko/s
+          # demandent une demi-heure, et Trivy abandonne au bout de 5 minutes.
+          #   docker run --rm -v /home/runner/.trivy-cache:/root/.cache \
+          #     aquasec/trivy:latest image --download-db-only --timeout 60m
+          if [ ! -f "${TRIVY_CACHE}/trivy/db/trivy.db" ]; then
+            echo "::error::Base Trivy absente de ${TRIVY_CACHE}/trivy/db/ — amorcer la base sur la VM (voir commentaire ci-dessus)."
+            exit 1
+          fi
           docker run --rm \
             -v /var/run/docker.sock:/var/run/docker.sock \
             -v "${TRIVY_CACHE}":/root/.cache \
             -v "$PWD":/out \
             aquasec/trivy:latest image \
+              --skip-db-update \
+              --pkg-types os \
+              --timeout 10m \
               --severity CRITICAL,HIGH,MEDIUM \
               --exit-code 0 \
               --format json \
               --output /out/trivy-report.json \
-              ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:develop
+              ${IMAGE}:develop
 
-      - name: Publication du rapport Trivy
+      - name: Archivage du rapport Trivy
         if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: trivy-report
-          path: trivy-report.json
-          retention-days: 30
+        run: |
+          DEST="/home/runner/akiwacu-artifacts/run-${GITHUB_RUN_NUMBER}"
+          mkdir -p "$DEST"
+          cp trivy-report.json "$DEST"/ 2>/dev/null || echo "aucun rapport"
+          echo "Trivy → $DEST/trivy-report.json"
 
+      # PAS docker/login-action — même raison. Un docker login tient en une ligne.
       - name: Connexion à GitHub Container Registry
-        uses: docker/login-action@v3
-        with:
-          registry: ${{ env.REGISTRY }}
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "${{ secrets.GITHUB_TOKEN }}" \
+            | docker login ${{ env.REGISTRY }} -u ${{ github.actor }} --password-stdin
 
       - name: Publication de l'image sur GHCR
         run: |
-          docker push ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:dev-${{ needs.build-test-quality.outputs.version }}
-          docker push ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:develop
+          docker push ${IMAGE}:dev-${{ needs.build-test-quality.outputs.version }}
+          docker push ${IMAGE}:develop
 
   # ─────────────────────────────────────────────────────────────
   # 2 bis. Image du client React
@@ -216,8 +255,11 @@ jobs:
       - uses: actions/checkout@v4
 
       # Node 20 est PRÉ-INSTALLÉ sur vm-devops-g1 — remplace actions/setup-node.
-      - name: Vérification de Node
-        run: node -v && corepack --version
+      - name: Vérification de Node et normalisation du nom d'image
+        working-directory: .
+        run: |
+          node -v && corepack --version
+          echo "IMAGE_CLIENT=${REGISTRY}/$(echo '${{ github.repository }}/client' | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
 
       - name: Installation et build du client
         run: |
@@ -227,29 +269,39 @@ jobs:
 
       - name: Construction de l'image du client
         working-directory: .
-        run: docker build -t ${{ env.REGISTRY }}/${{ github.repository }}/client:develop ./client
+        run: docker build -t ${IMAGE_CLIENT}:develop ./client
 
       - name: Analyse de sécurité de l'image client (Trivy)
         working-directory: .
         run: |
-          mkdir -p "${TRIVY_CACHE}"
+          # La base de vulnérabilités (107 Mo) est AMORCÉE UNE FOIS sur la VM,
+          # jamais téléchargée pendant un job : sur cette liaison, 107 Mo à 60 Ko/s
+          # demandent une demi-heure, et Trivy abandonne au bout de 5 minutes.
+          #   docker run --rm -v /home/runner/.trivy-cache:/root/.cache \
+          #     aquasec/trivy:latest image --download-db-only --timeout 60m
+          if [ ! -f "${TRIVY_CACHE}/trivy/db/trivy.db" ]; then
+            echo "::error::Base Trivy absente de ${TRIVY_CACHE}/trivy/db/ — amorcer la base sur la VM (voir commentaire ci-dessus)."
+            exit 1
+          fi
           docker run --rm \
             -v /var/run/docker.sock:/var/run/docker.sock \
             -v "${TRIVY_CACHE}":/root/.cache \
             aquasec/trivy:latest image \
+              --skip-db-update \
+              --pkg-types os \
+              --timeout 10m \
               --severity CRITICAL --ignore-unfixed --exit-code 1 --format table \
-              ${{ env.REGISTRY }}/${{ github.repository }}/client:develop
+              ${IMAGE_CLIENT}:develop
 
+      # PAS docker/login-action — même raison. Un docker login tient en une ligne.
       - name: Connexion à GitHub Container Registry
-        uses: docker/login-action@v3
-        with:
-          registry: ${{ env.REGISTRY }}
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "${{ secrets.GITHUB_TOKEN }}" \
+            | docker login ${{ env.REGISTRY }} -u ${{ github.actor }} --password-stdin
 
       - name: Publication de l'image client
         working-directory: .
-        run: docker push ${{ env.REGISTRY }}/${{ github.repository }}/client:develop
+        run: docker push ${IMAGE_CLIENT}:develop
 
   # ─────────────────────────────────────────────────────────────
   # 3. Déploiement sur vm-dev-g1 + vérification de démarrage
@@ -266,10 +318,15 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # PAS webfactory/ssh-agent : le runner purge _actions/ à chaque job,
+      # l'action serait retéléchargée à chaque exécution — exactement ce qui
+      # faisait échouer docker/login-action et upload-artifact. Écrire une clé
+      # dans un fichier tient en trois lignes et ne dépend de rien.
       - name: Chargement de la clé SSH
-        uses: webfactory/ssh-agent@v0.9.0
-        with:
-          ssh-private-key: ${{ secrets.SSH_KEY_DEV }}
+        run: |
+          mkdir -p ~/.ssh && chmod 700 ~/.ssh
+          printf '%s\n' "${{ secrets.SSH_KEY_DEV }}" > ~/.ssh/gha_deploy
+          chmod 600 ~/.ssh/gha_deploy
 
       - name: Ajout de vm-dev-g1 aux hôtes connus
         run: |
@@ -278,12 +335,12 @@ jobs:
 
       - name: Copie du docker-compose
         run: |
-          scp docker-compose.dev.yml \
+          scp -i ~/.ssh/gha_deploy docker-compose.dev.yml \
             ${{ secrets.SSH_USER_DEV }}@${{ secrets.SSH_HOST_DEV }}:~/akiwacu/docker-compose.yml
 
       - name: Déploiement de l'application
         run: |
-          ssh ${{ secrets.SSH_USER_DEV }}@${{ secrets.SSH_HOST_DEV }} << 'EOF'
+          ssh -i ~/.ssh/gha_deploy ${{ secrets.SSH_USER_DEV }}@${{ secrets.SSH_HOST_DEV }} << 'EOF'
             set -e
             cd ~/akiwacu
             echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
@@ -310,6 +367,12 @@ jobs:
             sleep 5
           done
           echo "❌ L'application n'a pas démarré correctement"
-          ssh ${{ secrets.SSH_USER_DEV }}@${{ secrets.SSH_HOST_DEV }} \
+          ssh -i ~/.ssh/gha_deploy ${{ secrets.SSH_USER_DEV }}@${{ secrets.SSH_HOST_DEV }} \
             'cd ~/akiwacu && docker compose logs --tail=100 api'
           exit 1
+
+      # La clé ne survit pas au job : le runner est une machine persistante,
+      # partagée par cinq personnes et par tous les workflows du dépôt.
+      - name: Effacement de la clé SSH
+        if: always()
+        run: rm -f ~/.ssh/gha_deploy

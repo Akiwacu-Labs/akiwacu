@@ -261,7 +261,116 @@ sortie de ces commandes vers `/dev/null` — c'est ce qui masque l'échec.
 
 ---
 
-## Applicatif
+### D-29 — Type de processeur Proxmox : `host`, pas `kvm64`
+
+**Décidé :** les 3 VM tournent avec `--cpu host`. `qm set <id> --cpu host`, puis
+`qm stop` et `qm start`.
+
+**Constaté avant :** Proxmox crée les VM avec `kvm64` par défaut — un modèle de
+processeur volontairement minimal, conçu pour que les VM puissent migrer vers
+n'importe quel hôte. La VM voyait `QEMU Virtual CPU version 2.5+`.
+
+**Symptôme :** la CI échouait sur `exit code 134`. Le rapport JVM donnait
+`SIGSEGV` dans `J 1087 c1 java.lang.String.trim()` — du code **compilé par le JIT**,
+pendant le démarrage de Maven, avant le moindre test. Ni mémoire, ni disque, ni
+JaCoCo : `df -h` affichait 5,5 Go libres et `free -h` 4,6 Go.
+
+**Motif :** le compilateur C1 génère du code machine optimisé d'après les
+instructions qu'il détecte au démarrage. Sur un modèle de processeur aussi réduit,
+les intrinsèques vectorisées du JDK produisent du code que le CPU émulé n'exécute
+pas correctement.
+
+**Vérification :** après bascule, `lscpu` affiche le vrai processeur
+(Intel Core i7-8700, avec `avx`, `avx2`, `bmi2`) et trois `./mvnw -B test`
+consécutifs passent.
+
+**Conséquence :** `host` est de toute façon la recommandation sur un nœud unique —
+3 à 10 % plus rapide, et la migration à chaud n'est pas dans notre périmètre.
+`infra/terraform/main.tf` déclare déjà `cpu { type = "host" }` : le
+`terraform plan` du D7 affichera `No changes` au lieu d'un écart à expliquer.
+
+---
+
+### D-30 — Base Trivy amorcée hors CI, analyse limitée aux paquets système
+
+**Décidé :** la base de vulnérabilités Trivy est téléchargée **une fois** sur
+`vm-devops-g1`, hors pipeline. Les jobs tournent avec `--skip-db-update` et
+`--pkg-types os`. Procédure et rafraîchissement : `docs/RUNBOOK-TRIVY.md`.
+
+**Constaté :** le job Trivy échouait sur
+`failed to download vulnerability DB … context deadline exceeded`. Les journaux
+donnent la mesure exacte : **106,79 Mio à 62 Ko/s**, soit environ **29 minutes**.
+Le délai d'attente par défaut de Trivy est de 5 minutes. Le téléchargement n'était
+pas lent par accident : il n'avait aucune chance d'aboutir.
+
+C'est la **troisième** manifestation de la même contrainte physique, après
+`actions/setup-java` et `docker/login-action` (voir ADR-002). Le réglage BBR a fait
+passer la liaison de 16 à 62 Ko/s ; il n'en fera pas une liaison rapide.
+
+**Motif :** la règle appliquée partout ailleurs sur ce runner — *une machine
+persistante s'approvisionne une fois, elle ne se réapprovisionne pas à chaque job*.
+Le JDK, Node et les actions suivent déjà ce principe. La base Trivy n'y échappe pas.
+Un `--timeout 40m` aurait « marché » en ajoutant 40 minutes à chaque exécution
+dont la base a plus de 24 h, ce qui n'est pas un pipeline.
+
+**Limitation assumée — `--pkg-types os`.** Trivy analyse les paquets du système de
+base (Alpine), pas les dépendances Java de `app.jar`. L'analyse des `.jar` exige la
+`trivy-java-db`, environ 700 Mo, soit **plus de trois heures** sur cette liaison.
+La couverture applicative reste donc partielle, et c'est dit tel quel dans le
+rapport plutôt que masqué : la CVE d'une dépendance Maven ne serait pas détectée
+par cette étape. `mvn dependency:tree` et le Quality Gate SonarQube couvrent
+partiellement l'angle mort.
+
+**Vérification :** `ls -lh /home/runner/.trivy-cache/trivy/db/trivy.db` avant de
+relancer le pipeline. Le workflow échoue immédiatement, avec un message explicite,
+si la base est absente — plutôt qu'au bout de sept minutes d'expiration.
+
+---
+
+### D-31 — Runner persistant, pas éphémère · l'isolation passe par un contrôle d'accès
+
+**Décidé :** le runner reste **persistant**. Pas de `--ephemeral`, pas de runner
+conteneurisé recréé à chaque job. L'isolation est obtenue par une règle d'accès :
+*Settings → Actions → General → Fork pull request workflows from outside
+collaborators → **Require approval for all outside collaborators***.
+
+**Alternative examinée :** un runner éphémère se détruit après chaque job. C'est la
+recommandation courante, et elle supprime effectivement toute pollution d'état entre
+deux exécutions.
+
+**Motif du rejet — la mesure, pas la préférence.** Tout ce qui rend notre pipeline
+possible en 3 min 51 s vit sur une machine qui ne disparaît pas :
+
+| Sur le runner persistant | Coût de réacquisition à chaque job |
+|---|---|
+| Base de vulnérabilités Trivy (1,2 Go) | ~29 min (D-30) |
+| JDK 21 et Node 20 pré-installés | ~180 Mo |
+| Cache de couches Docker, images de base | plusieurs minutes |
+| `akiwacu-artifacts/` | perdu — les livrables du D7 |
+
+À 60 Ko/s, l'éphémère ne rend pas le pipeline plus lent : il le rend impossible.
+La recommandation suppose une liaison où reprovisionner est gratuit. Sur la nôtre,
+ADR-002 et D-30 établissent le contraire, chiffres à l'appui.
+
+**Ce que le rejet ne dit pas.** Le risque désigné est réel, mais ce n'est pas la
+pollution d'état entre nos cinq jobs — c'est le dépôt **public** couplé à un runner
+sur le réseau de l'université : un inconnu ouvre une PR depuis un fork et son code
+s'exécute sur `vm-devops-g1`. C'est le scénario contre lequel GitHub met
+explicitement en garde.
+
+**Traité par le contrôle d'accès**, qui répond exactement à cette menace, pour un
+réglage et zéro minute d'indisponibilité. Nos cinq membres partagent déjà la
+machine : les isoler les uns des autres ne protège de rien.
+
+**À noter :** le runner purge `_actions/` au début de chaque job — constaté au D2.
+Une partie de l'isolation promise par l'éphémère est donc déjà acquise.
+
+**Réexamen :** si le projet obtient une liaison décente, l'éphémère redevient le bon
+choix. La décision dépend d'une mesure de débit, pas d'une doctrine.
+
+---
+
+## Applicatif## Applicatif
 
 ### D-18 — Client React + TypeScript, séparé de l'API
 
@@ -307,20 +416,28 @@ soutenance. Test imposé : `shouldNotAccessDataFromAnotherTontine()`.
 
 ---
 
-### D-25 — Intérêts : taux forfaitaire appliqué une fois
+### D-25 — Intérêts : taux forfaitaire **mensuel**
 
-**Décidé :** `montantDu = montantAccorde + (montantAccorde × tauxInteret / 100)`,
-arrondi `HALF_UP` à 2 décimales. `tauxInteret` vaut 0 par défaut.
+**Décidé par Andy, chef de projet :**
 
-**Envisagé d'abord :** rien — l'énoncé ne définit pas la formule, et la première
-version du modèle de données disait seulement « montantAccorde + intérêts ».
+```
+montantDu = montantAccorde + (montantAccorde × tauxInteret / 100 × dureeMois)
+```
 
-**Motif :** un trésorier de tontine calcule de tête. Une capitalisation ou un prorata
-mensuel ajouterait un mode de défaillance sans rapporter un point.
+`HALF_UP` à 2 décimales. `tauxInteret` vaut 0 par défaut.
+*100 000 BIF à 10 % sur 3 mois → 130 000 BIF.*
 
-**Conséquence :** `soldeRestant()` et `estEnRetard()` en dépendent directement.
-**R6 porte sur `montantDemande`**, le capital demandé — pas sur `montantDu`.
-Gloria confirme avant de construire `PretService` dessus.
+**Envisagé :** un forfait appliqué une seule fois, indépendant de la durée — plus
+simple, mais un prêt d'un mois et un prêt de six mois coûteraient la même chose.
+
+**Motif :** c'est la pratique des associations d'épargne et de crédit. Un taux
+mensuel simple sur des prêts courts, dont les intérêts alimentent le fonds
+redistribué à la clôture du cycle. Le forfait unique ne correspond à rien de réel.
+
+**Conséquence :** `dureeMois` est **recopié sur `Pret`** et non lu depuis
+`DemandePret` — le calcul reste possible sans charger la demande, et l'entité est
+testable sans base de données (voir D-12). `soldeRestant()` et `estEnRetard()` en
+découlent.
 
 ---
 
@@ -338,7 +455,48 @@ et le `RecuService` de Juste. Il ne se renomme pas.
 
 ---
 
-## Pilotage
+### D-27 — « L'épargne du membre » = les cotisations du cycle en cours
+
+**Décidé par Andy, chef de projet.** R6 plafonne un prêt à 3 × l'épargne. L'énoncé ne
+définit jamais l'épargne.
+
+```sql
+SELECT COALESCE(SUM(montant), 0)
+FROM cotisations
+WHERE membre_id = :membreId AND cycle_id = :cycleIdCourant;
+```
+
+**Envisagé :** le cumul sur tous les cycles. Écarté — un cycle se clôture par une
+redistribution, chacun récupère sa mise. Compter les cycles passés reviendrait à
+prêter contre une épargne déjà rendue.
+
+**Envisagé aussi :** épargne du cycle moins l'encours des prêts actifs, pour empêcher
+d'empiler deux prêts au plafond. Écarté du calcul lui-même : les associations traitent
+ce cas par une règle distincte — *un seul prêt actif à la fois* — plus lisible qu'un
+plafond qui bouge.
+
+**Motif :** cohérent avec R2 et R3, qui bornent toute opération au cycle. Une seule
+requête, un seul test.
+
+**Conséquence :** c'est la réponse à donner en soutenance, et elle sera demandée.
+
+---
+
+### D-28 — Plages de numéros de migration réservées par personne
+
+**Décidé :** chaque membre dispose d'une plage `V<n>` qui lui est propre —
+Andy `V3-V9`, Juste `V10-V19`, Benitha `V20-V29`, Gloria `V30-V39`, Klein `V40-V49`.
+
+**Motif :** quatre personnes travaillant en parallèle créeraient chacune un `V3__…sql`.
+Flyway refuse alors de démarrer, et il faut renuméroter à la main dans quatre branches
+déjà poussées. Les plages suppriment le problème sans aucune coordination.
+
+**Conséquence :** une migration **déjà mergée ne se modifie jamais** — Flyway conserve
+une empreinte de chaque fichier appliqué. On ajoute une nouvelle migration.
+
+---
+
+## Pilotage## Pilotage
 
 ### D-21 — Scrum complet, trois sprints
 
