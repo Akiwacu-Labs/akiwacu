@@ -159,7 +159,8 @@ boolean quorumAtteint()   // ≥ 2 votes POUR de commissaires distincts → R4
 | `membre` | FK `membres` | `NOT NULL` |
 | `cycle` | FK `cycles` | `NOT NULL` |
 | `montantAccorde` | `NUMERIC(15,2)` | `NOT NULL`, `CHECK (> 0)` |
-| `tauxInteret` | `NUMERIC(5,2)` | `NOT NULL DEFAULT 0` |
+| `tauxInteret` | `NUMERIC(5,2)` | `NOT NULL DEFAULT 0` — taux **mensuel**, en % |
+| `dureeMois` | `INTEGER` | `NOT NULL`, `CHECK (> 0)` — recopié depuis la demande |
 | `dateDeblocage` | `DATE` | `NOT NULL` |
 | `dateEcheance` | `DATE` | `NOT NULL` — **R7** : ≤ `cycle.dateFin` |
 | `statut` | `VARCHAR(20)` | enum : `ACTIF` `SOLDE` `EN_RETARD` |
@@ -173,22 +174,45 @@ BigDecimal soldeRestant()               // montantDu() − somme des rembourseme
 boolean    estEnRetard(LocalDate jour)  // jour > dateEcheance && soldeRestant() > 0
 ```
 
-**Formule des intérêts — arrêtée, ne pasla changer sans passer par le daily :**
+**Formule des intérêts — arrêtée. Ne pas la modifier sans passer par le daily.**
 
 ```
-montantDu = montantAccorde + (montantAccorde × tauxInteret / 100)
+montantDu = montantAccorde + (montantAccorde × tauxInteret / 100 × dureeMois)
 ```
 
-Un **taux forfaitaire appliqué une seule fois** sur la durée du prêt, arrondi
-`HALF_UP` à 2 décimales. Pas de capitalisation, pas de prorata mensuel.
+Un **taux forfaitaire mensuel** sur le capital, arrondi `HALF_UP` à 2 décimales.
+Pas de capitalisation, pas d'amortissement dégressif.
 
-C'est ce que pratiquent la plupart des tontines, c'est calculable de tête par un
-trésorier, et c'est défendable en une phrase à la soutenance. `tauxInteret` vaut `0`
-par défaut : la démonstration fonctionne sans jamais toucher au sujet.
+C'est la pratique des associations d'épargne et de crédit : un taux mensuel simple
+sur des prêts courts, et les intérêts perçus alimentent le fonds redistribué à la
+clôture du cycle. Un trésorier le calcule de tête.
+
+*Exemple :* 100 000 BIF à 10 % sur 3 mois → 100 000 + 30 000 = **130 000 BIF**.
+
+`tauxInteret` vaut `0` par défaut : la démonstration fonctionne sans jamais aborder
+le sujet.
+
+> **`dureeMois` est recopié sur `Pret`**, il n'est pas lu depuis `DemandePret`.
+> Deux raisons : le prêt reste calculable sans charger la demande, et l'entité est
+> testable sans base de données — ce qu'exige `DECISIONS.md` D-12.
 
 > ⚠ **R6 porte sur `montantDemande`, pas sur `montantDu`.** Le plafond de 3 × épargne
-> s'applique au **capital demandé**. Sinon un prêt conforme deviendrait non conforme
-> par le seul effet des intérêts, ce qui n'a pas de sens métier.
+> s'applique au **capital demandé**. Sinon un membre qui demande exactement son
+> plafond serait refusé par le seul effet des intérêts.
+
+**Définition de « l'épargne du membre » — arrêtée.**
+
+```sql
+SELECT COALESCE(SUM(montant), 0)
+FROM cotisations
+WHERE membre_id = :membreId AND cycle_id = :cycleIdCourant;
+```
+
+**La somme des cotisations du membre sur le cycle en cours.** Pas l'historique complet.
+
+Un cycle se termine par une redistribution : chacun récupère sa mise. Compter les
+cycles antérieurs reviendrait à prêter contre une épargne déjà rendue. Cette
+définition est aussi cohérente avec R2 et R3, qui bornent tout au cycle.
 
 ## 10. `Remboursement` — `remboursements`
 

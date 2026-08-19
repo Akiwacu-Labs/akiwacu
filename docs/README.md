@@ -12,8 +12,7 @@ comme le code.
 | savoir sur **quelle machine** taper une commande | [`CARTE-DES-MACHINES.md`](CARTE-DES-MACHINES.md) |
 | savoir **quoi faire aujourd'hui** | [`PLANNING-8-JOURS.md`](PLANNING-8-JOURS.md) puis ton `roles/M<n>-role.md` |
 | **configurer ton poste** | [`GUIDE-SETUP-POSTE.md`](GUIDE-SETUP-POSTE.md) |
-| ouvrir une branche, un commit, une PR | [`GUIDE-GIT-GITHUB.md`](GUIDE-GIT-GITHUB.md) |
-| **démarrer ta première PR** — règles de travail en parallèle | [`PREMIERE-PR.md`](PREMIERE-PR.md) |
+| ouvrir une branche, un commit, une PR — règles de travail en parallèle | [`GUIDE-GIT-GITHUB.md`](GUIDE-GIT-GITHUB.md) |
 | prendre un ticket, tenir un daily | [`GUIDE-JIRA-SCRUM.md`](GUIDE-JIRA-SCRUM.md) |
 | écrire une **entité**, une migration, une relation | [`MODELE-DE-DONNEES.md`](MODELE-DE-DONNEES.md) |
 | implémenter une **règle métier** | [`MATRICE-REGLES-METIER.md`](MATRICE-REGLES-METIER.md) |
