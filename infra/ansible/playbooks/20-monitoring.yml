@@ -1,9 +1,12 @@
 ---
 # Prometheus + Grafana sur vm-devops-g1.
-# Exige group_vars/all/vault.yml (chiffré) contenant grafana_password.
+# Utilise group_vars/all/vault.yml (chiffré) contenant grafana_password.
 - name: Prometheus et Grafana
   hosts: devops
   become: true
+
+  vars_files:
+    - ../group_vars/all/vault.yml
 
   tasks:
     - name: Dossiers de configuration

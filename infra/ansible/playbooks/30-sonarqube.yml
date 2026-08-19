@@ -5,6 +5,9 @@
   hosts: devops
   become: true
 
+  vars_files:
+    - ../group_vars/all/vault.yml
+
   tasks:
     # SonarQube embarque Elasticsearch : sans ces réglages, il refuse de démarrer.
     - name: Réglages noyau exigés par Elasticsearch
