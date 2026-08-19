@@ -56,10 +56,11 @@ contourne par deux requêtes simultanées. La contrainte unique
 `(demande_id, commissaire_id)` en base est ce qui garantit réellement la règle ; le
 contrôle applicatif ne sert qu'à renvoyer un message propre.
 
-**R6 — le piège de la définition.** « L'épargne du membre » n'est pas défini par
-l'énoncé. Nous retenons : *la somme des cotisations du membre sur le cycle en cours*.
-**Écrire cette définition dans le rapport** — c'est une question de soutenance
-garantie, et une définition assumée vaut mieux qu'une définition implicite.
+**R6 — la définition est tranchée, pas ouverte.** « L'épargne du membre » =
+**la somme des cotisations du membre sur le cycle en cours** (`DECISIONS.md` D-27).
+Le plafond porte sur `montantDemande`, le capital demandé — **pas** sur `montantDu`,
+sinon les intérêts feraient refuser un prêt conforme. À reprendre tel quel dans le
+rapport : c'est une question de soutenance garantie.
 
 **R8 — le piège du périmètre.** Le verrouillage porte sur toute opération ayant généré
 un reçu : cotisation, déblocage de prêt, remboursement. Pas seulement les cotisations.
