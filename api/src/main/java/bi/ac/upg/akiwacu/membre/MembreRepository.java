@@ -5,9 +5,11 @@ import org.springframework.stereotype.Repository;
 
 /**
  * PROPRIÉTAIRE : Andy.
- * Vide volontairement — les méthodes de requête appartiennent au domaine
- * qui les consomme, pas à la PR socle.
  */
 @Repository
 public interface MembreRepository extends JpaRepository<Membre, Long> {
+
+    // Filtré par tontine_id via le filtre Hibernate (D-33) : deux tontines
+    // peuvent réutiliser le même numeroMembre sans collision.
+    boolean existsByNumeroMembre(String numeroMembre);
 }
