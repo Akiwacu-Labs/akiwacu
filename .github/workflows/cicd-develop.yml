@@ -121,8 +121,14 @@ jobs:
             -Dsonar.token=$SONAR_TOKEN \
             -Dsonar.coverage.jacoco.xmlReportPaths=target/site/jacoco/jacoco.xml
 
+      # Drapeau SÉPARÉ, volontairement. SONAR_ENABLED envoie l'analyse et permet
+      # de LIRE les chiffres. SONAR_GATE rend le résultat BLOQUANT. Le profil par
+      # défaut « Sonar way » exige 80 % de couverture sur le code neuf : activer
+      # les deux le même jour ferait échouer toutes les PR de l'équipe.
+      # On lève SONAR_GATE quand la couverture monte réellement.
+      #   gh variable set SONAR_GATE --body true
       - name: Validation du Quality Gate SonarQube
-        if: vars.SONAR_ENABLED == 'true'
+        if: vars.SONAR_GATE == 'true'
         uses: SonarSource/sonarqube-quality-gate-action@master
         timeout-minutes: 5
         env:
@@ -311,7 +317,18 @@ jobs:
     # Exige les 3 VM joignables en SSH avec gha_deploy.
     #   gh variable set DEPLOY_ENABLED --body true
     needs: [build-test-quality, docker-build-scan-push, client-build-push]
-    if: vars.DEPLOY_ENABLED == 'true' && github.event_name == 'push'
+    # GitHub saute un job dès qu'une de ses dépendances est sautée. Sans
+    # always(), tant que CLIENT_ENABLED est false le déploiement ne partirait
+    # JAMAIS, même avec DEPLOY_ENABLED=true — un blocage silencieux, sans erreur.
+    # On exige donc explicitement le résultat de chaque dépendance, et on accepte
+    # que le client soit 'skipped'.
+    if: |
+      always()
+      && vars.DEPLOY_ENABLED == 'true'
+      && github.event_name == 'push'
+      && needs.build-test-quality.result == 'success'
+      && needs.docker-build-scan-push.result == 'success'
+      && (needs.client-build-push.result == 'success' || needs.client-build-push.result == 'skipped')
     runs-on: [self-hosted, linux, onprem]
     environment: development
 

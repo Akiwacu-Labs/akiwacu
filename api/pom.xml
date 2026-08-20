@@ -22,6 +22,7 @@
     <springdoc.version>2.6.0</springdoc.version>
     <jjwt.version>0.12.6</jjwt.version>
     <jacoco.version>0.8.12</jacoco.version>
+    <sonar-maven-plugin.version>5.1.0.4751</sonar-maven-plugin.version>
     <!-- Seuil de couverture. Le socle n'a presque pas de tests : il DOIT rester
          à 0.00 tant que la PR socle n'est pas mergée, sinon elle ne peut pas passer.
          Klein le relève ensuite : 0.50 (D3) → 0.60 (D4) → 0.80 (D6). -->
@@ -125,6 +126,16 @@
             </exclude>
           </excludes>
         </configuration>
+      </plugin>
+
+      <!-- Sans cette déclaration, "mvnw sonar:sonar" échoue avec "No plugin
+           found for prefix 'sonar'" : org.sonarsource.scanner.maven n'est pas
+           un groupId que Maven résout par défaut (contrairement à
+           org.apache.maven.plugins), il faut l'enregistrer explicitement. -->
+      <plugin>
+        <groupId>org.sonarsource.scanner.maven</groupId>
+        <artifactId>sonar-maven-plugin</artifactId>
+        <version>${sonar-maven-plugin.version}</version>
       </plugin>
 
       <plugin>

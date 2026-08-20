@@ -119,8 +119,14 @@ jobs:
             -Dsonar.token=$SONAR_TOKEN \
             -Dsonar.coverage.jacoco.xmlReportPaths=target/site/jacoco/jacoco.xml
 
+      # Drapeau SÉPARÉ, volontairement. SONAR_ENABLED envoie l'analyse et permet
+      # de LIRE les chiffres. SONAR_GATE rend le résultat BLOQUANT. Le profil par
+      # défaut « Sonar way » exige 80 % de couverture sur le code neuf : activer
+      # les deux le même jour ferait échouer toutes les PR de l'équipe.
+      # On lève SONAR_GATE quand la couverture monte réellement.
+      #   gh variable set SONAR_GATE --body true
       - name: Validation du Quality Gate SonarQube
-        if: vars.SONAR_ENABLED == 'true'
+        if: vars.SONAR_GATE == 'true'
         uses: SonarSource/sonarqube-quality-gate-action@master
         timeout-minutes: 5
         env:
@@ -308,7 +314,14 @@ jobs:
     # Exige les 3 VM joignables en SSH avec gha_deploy.
     #   gh variable set DEPLOY_ENABLED --body true
     needs: [build-test-quality, docker-build-scan-push, client-build-push]
-    if: vars.DEPLOY_ENABLED == 'true'
+    # Voir le commentaire équivalent dans cicd-develop.yml : un job dont une
+    # dépendance est sautée est sauté à son tour, sans message d'erreur.
+    if: |
+      always()
+      && vars.DEPLOY_ENABLED == 'true'
+      && needs.build-test-quality.result == 'success'
+      && needs.docker-build-scan-push.result == 'success'
+      && (needs.client-build-push.result == 'success' || needs.client-build-push.result == 'skipped')
     runs-on: [self-hosted, linux, onprem]
     environment: production          # exige un relecteur dans les réglages du dépôt
 
