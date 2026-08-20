@@ -43,6 +43,14 @@
       <artifactId>spring-boot-starter-security</artifactId>
     </dependency>
 
+    <!-- R1 (D-20, D-33) : le filtre Hibernate tontineFilter doit s'activer sur
+         chaque appel de repository sans que le service appelant y pense.
+         Nécessite le support @Aspect (TenantFilterAspect) — voir common/. -->
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-aop</artifactId>
+    </dependency>
+
     <!-- JWT (D-32) : émission/validation des jetons. jjwt plutôt que le starter
          oauth2-resource-server — API directe (Jwts.builder()...), plus simple
          à justifier à l'oral que la configuration OAuth2 complète. -->

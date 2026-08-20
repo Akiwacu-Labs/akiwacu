@@ -40,4 +40,14 @@ public final class TenantContext {
     public static void clear() {
         TONTINE_ID.remove();
     }
+
+    /**
+     * true si un tontineId est posé pour ce thread. Réservé à
+     * TenantFilterAspect : certaines transactions sont légitimement
+     * antérieures à l'authentification (ex. AuthService.login()) et ne
+     * doivent pas déclencher l'exception de getTontineId().
+     */
+    public static boolean estDefini() {
+        return TONTINE_ID.get() != null;
+    }
 }
