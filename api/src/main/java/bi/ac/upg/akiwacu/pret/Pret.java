@@ -31,11 +31,8 @@ import java.util.List;
 
 /**
  * PROPRIÉTAIRE : Gloria.
- * Taux d'intérêt interprété comme un taux fixe appliqué une fois sur la
- * durée du prêt (pas d'amortissement, pas de composition) : c'est la lecture
- * la plus simple compatible avec « montantAccorde + intérêts » du modèle de
- * données. À confirmer par Gloria (propriétaire de R6/R7) avant implémentation
- * du service.
+ * Intérêts : taux forfaitaire mensuel sur le capital, pas de capitalisation
+ * ni d'amortissement dégressif — voir DECISIONS.md D-25.
  */
 @Entity
 @Table(name = "prets")
@@ -65,6 +62,9 @@ public class Pret extends BaseEntity {
     @Column(name = "taux_interet", precision = 5, scale = 2, nullable = false)
     private BigDecimal tauxInteret = BigDecimal.ZERO;
 
+    @Column(name = "duree_mois", nullable = false)
+    private Integer dureeMois;
+
     @Column(name = "date_deblocage", nullable = false)
     private LocalDate dateDeblocage;
 
@@ -91,10 +91,11 @@ public class Pret extends BaseEntity {
     @OneToMany(mappedBy = "pret", fetch = FetchType.LAZY)
     private List<Remboursement> remboursements = new ArrayList<>();
 
-    /** montantAccorde + intérêts (taux fixe appliqué une fois sur la durée du prêt). */
+    /** montantAccorde + (montantAccorde × tauxInteret / 100 × dureeMois) — D-25. */
     public BigDecimal montantDu() {
         BigDecimal interets = montantAccorde
                 .multiply(tauxInteret)
+                .multiply(BigDecimal.valueOf(dureeMois))
                 .divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
         return montantAccorde.add(interets);
     }
