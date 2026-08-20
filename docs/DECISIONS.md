@@ -572,6 +572,39 @@ dans un `finally` (fuite inter-requêtes sinon, Tomcat réutilisant ses threads)
 
 ---
 
+### D-33 — R1 : filtre Hibernate en filet de sécurité, pas en unique protection
+
+**Décidé par Andy :** `@FilterDef`/`@Filter` (`tontine_id = :tontineId`) sur les
+entités qui portent une colonne `tontine_id` directe, activé automatiquement à
+chaque appel de repository par `TenantFilterAspect` (`execution(*
+org.springframework.data.repository.Repository+.*(..))`). Le filtrage manuel par
+`tontineId` dans chaque requête de repository — motif déjà suivi — reste la
+protection de référence ; le filtre Hibernate est une deuxième ligne de défense qui
+rattrape une requête où il aurait été oublié.
+
+**Motif :** un audit de session a trouvé que `MATRICE-REGLES-METIER.md` promettait
+ce filtre depuis le début alors qu'aucun code ne l'implémentait — R1 reposait donc
+sur la seule discipline manuelle, sans filet. Voir D-20 : c'est la règle la plus
+probable à l'oral, elle ne pouvait pas rester sans second niveau de protection.
+
+**Pourquoi `TenantFilterAspect` cible `execution(* Repository+.*(..))` et pas
+`@annotation(Transactional)` :** `SimpleJpaRepository` porte `@Transactional` au
+niveau de la **classe**, pas de chaque méthode. Un point de coupe
+`@annotation(Transactional)` ne remonte pas jusqu'à une annotation de classe
+héritée : testé en pratique contre une base Postgres réelle (deux tontines, deux
+membres), la version `@annotation` ne filtrait strictement rien, sans qu'aucune
+erreur ne le signale — un filet de sécurité qui n'en est pas un. La version par
+exécution de méthode de repository, elle, a été vérifiée de la même façon.
+
+**Conséquence — couverture par entité (voir aussi MATRICE-REGLES-METIER.md) :**
+seules `Utilisateur` et `Membre` (Andy) ont `@Filter` aujourd'hui. `Cycle`
+(Benitha) et `TransactionCaisse` (Klein) ont déjà la colonne `tontine_id`
+nécessaire — une ligne à ajouter. Les huit autres entités n'ont pas de colonne
+directe et demandent soit une condition `@Filter` avec sous-requête, soit une
+migration de dénormalisation ; propre à chaque domaine, pas à Andy seul.
+
+---
+
 ## Ce qui a été délibérément écarté
 
 | Écarté | Motif |

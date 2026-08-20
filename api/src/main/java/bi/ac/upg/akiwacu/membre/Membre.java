@@ -17,6 +17,7 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.hibernate.annotations.Filter;
 
 import java.time.LocalDate;
 
@@ -27,6 +28,7 @@ import java.time.LocalDate;
  */
 @Entity
 @Table(name = "membres", uniqueConstraints = @UniqueConstraint(columnNames = {"tontine_id", "numero_membre"}))
+@Filter(name = "tontineFilter", condition = "tontine_id = :tontineId")
 @Getter
 @Setter
 @NoArgsConstructor

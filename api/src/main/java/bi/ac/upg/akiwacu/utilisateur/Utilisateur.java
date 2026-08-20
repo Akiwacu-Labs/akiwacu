@@ -17,6 +17,7 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.hibernate.annotations.Filter;
 
 import java.util.HashSet;
 import java.util.Set;
@@ -25,9 +26,14 @@ import java.util.Set;
  * PROPRIÉTAIRE : Andy.
  * Un utilisateur appartient à une seule tontine : tontineId entre dans les
  * claims du JWT et ne doit jamais être lu depuis le corps d'une requête (R1).
+ *
+ * @Filter reste sans effet tant que TenantFilterAspect ne l'a pas activé —
+ * c'est le cas pendant AuthService.login(), qui doit justement pouvoir
+ * chercher un email dans toutes les tontines pour déterminer laquelle.
  */
 @Entity
 @Table(name = "utilisateurs")
+@Filter(name = "tontineFilter", condition = "tontine_id = :tontineId")
 @Getter
 @Setter
 @NoArgsConstructor
