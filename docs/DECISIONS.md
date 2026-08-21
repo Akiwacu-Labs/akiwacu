@@ -605,6 +605,29 @@ migration de dénormalisation ; propre à chaque domaine, pas à Andy seul.
 
 ---
 
+### D-34 — Direction visuelle du client : « Le Compteur »
+
+**Décidé par Andy, le 20 août 2026 :** trois directions ont été maquettées et
+comparées (écran de saisie des cotisations + tableau de bord président), pas
+choisies au goût — [canvas de l'exploration](https://claude.ai/code/artifact/2e81e057-b8b6-406d-8f72-aec38a588282).
+Direction retenue : **Le Compteur** — un membre à la fois, plein écran, un total
+qui grimpe en direct dans un bandeau fixe en haut de l'écran ; recherche par nom
+pour atteindre n'importe quel membre hors ordre plutôt qu'une liste à faire
+défiler.
+
+**Motif :** l'ADR-001 décrit le trésorier comme quelqu'un qui compte à voix haute
+pendant la réunion, pas quelqu'un qui parcourt un registre. Le Compteur colle à ce
+rythme : le bandeau de total donne à toute la salle le même repère que le décompte
+oral, et la recherche par nom règle le cas d'un membre qui doit passer devant les
+autres (urgence annoncée à voix haute en réunion — pas de motif à saisir dans
+l'application, la transparence est déjà sociale).
+
+**Conséquence :** jeton de design (polices, couleurs, rayons) figé dans
+`docs/GUIDE-CLIENT-REACT.md` section 3, à reprendre tel quel dans `index.css` et
+le thème Tailwind du client (P1) — ne pas en réinventer.
+
+---
+
 ## Ce qui a été délibérément écarté
 
 | Écarté | Motif |
