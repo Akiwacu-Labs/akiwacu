@@ -4,7 +4,11 @@ import bi.ac.upg.akiwacu.caisse.SensTransaction;
 import bi.ac.upg.akiwacu.caisse.TransactionCaisseRepository;
 import bi.ac.upg.akiwacu.common.TenantContext;
 import bi.ac.upg.akiwacu.cotisation.CotisationRepository;
+import bi.ac.upg.akiwacu.cycle.CycleRepository;
+import bi.ac.upg.akiwacu.cycle.StatutCycle;
 import bi.ac.upg.akiwacu.dashboard.dto.DashboardResponse;
+import bi.ac.upg.akiwacu.demandepret.DemandePretRepository;
+import bi.ac.upg.akiwacu.demandepret.StatutDemandePret;
 import bi.ac.upg.akiwacu.membre.MembreRepository;
 import bi.ac.upg.akiwacu.membre.StatutMembre;
 import bi.ac.upg.akiwacu.pret.PretRepository;
@@ -23,6 +27,8 @@ public class DashboardService {
 
     private final MembreRepository membreRepository;
     private final CotisationRepository cotisationRepository;
+        private final CycleRepository cycleRepository;
+        private final DemandePretRepository demandePretRepository;
     private final PretRepository pretRepository;
     private final RemboursementRepository remboursementRepository;
     private final TransactionCaisseRepository transactionRepository;
@@ -31,12 +37,16 @@ public class DashboardService {
 
     public DashboardService(MembreRepository membreRepository,
                             CotisationRepository cotisationRepository,
+                            CycleRepository cycleRepository,
+                            DemandePretRepository demandePretRepository,
                             PretRepository pretRepository,
                             RemboursementRepository remboursementRepository,
                             TransactionCaisseRepository transactionRepository,
                             MeterRegistry meterRegistry) {
         this.membreRepository = membreRepository;
         this.cotisationRepository = cotisationRepository;
+        this.cycleRepository = cycleRepository;
+        this.demandePretRepository = demandePretRepository;
         this.pretRepository = pretRepository;
         this.remboursementRepository = remboursementRepository;
         this.transactionRepository = transactionRepository;
@@ -74,13 +84,33 @@ public class DashboardService {
                         : transaction.getMontant().negate())
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
+        long cotisationsEnregistrees = cotisationRepository.findAll().stream()
+                .filter(cotisation -> cotisation.getCycle().getTontine().getId().equals(tontineId))
+                .count();
+        long pretsAccordes = demandePretRepository.findAll().stream()
+                .filter(demande -> demande.getCycle().getTontine().getId().equals(tontineId))
+                .filter(demande -> demande.getStatut() == StatutDemandePret.DEBLOQUEE
+                        || demande.getStatut() == StatutDemandePret.APPROUVEE)
+                .count();
+        long pretsRefuses = demandePretRepository.findAll().stream()
+                .filter(demande -> demande.getCycle().getTontine().getId().equals(tontineId))
+                .filter(demande -> demande.getStatut() == StatutDemandePret.REJETEE)
+                .count();
+        long cyclesActifs = cycleRepository.findAll().stream()
+                .filter(cycle -> cycle.getTontine().getId().equals(tontineId))
+                .filter(cycle -> cycle.getStatut() == StatutCycle.OUVERT)
+                .count();
+
         DashboardResponse response = new DashboardResponse(
                 membresActifs, cotisations, pretsEnCours, remboursements, soldeCaisse);
-        mettreAJourMetriques(tontineId, response);
+        mettreAJourMetriques(tontineId, response, cotisationsEnregistrees,
+                pretsAccordes, pretsRefuses, cyclesActifs);
         return response;
     }
 
-    private void mettreAJourMetriques(Long tontineId, DashboardResponse response) {
+    private void mettreAJourMetriques(Long tontineId, DashboardResponse response,
+                                      long cotisationsEnregistrees, long pretsAccordes,
+                                      long pretsRefuses, long cyclesActifs) {
         mettreAJour("akiwacu.membres.total", tontineId, (double) response.membresActifs());
         mettreAJour("akiwacu.cotisations.montant.total", tontineId,
                 response.cotisationsTotal().doubleValue());
@@ -89,6 +119,10 @@ public class DashboardService {
         mettreAJour("akiwacu.remboursements.montant.total", tontineId,
                 response.remboursementsTotal().doubleValue());
         mettreAJour("akiwacu.solde.caisse", tontineId, response.soldeCaisse().doubleValue());
+        mettreAJour("akiwacu.cotisations.enregistrees.total", tontineId, cotisationsEnregistrees);
+        mettreAJour("akiwacu.prets.accordes.total", tontineId, pretsAccordes);
+        mettreAJour("akiwacu.prets.refuses.total", tontineId, pretsRefuses);
+        mettreAJour("akiwacu.cycles.actifs", tontineId, cyclesActifs);
     }
 
     private void mettreAJour(String name, Long tontineId, double value) {

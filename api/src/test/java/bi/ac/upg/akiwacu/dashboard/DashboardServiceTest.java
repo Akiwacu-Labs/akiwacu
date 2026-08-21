@@ -3,6 +3,8 @@ package bi.ac.upg.akiwacu.dashboard;
 import bi.ac.upg.akiwacu.caisse.TransactionCaisseRepository;
 import bi.ac.upg.akiwacu.common.TenantContext;
 import bi.ac.upg.akiwacu.cotisation.CotisationRepository;
+import bi.ac.upg.akiwacu.cycle.CycleRepository;
+import bi.ac.upg.akiwacu.demandepret.DemandePretRepository;
 import bi.ac.upg.akiwacu.membre.MembreRepository;
 import bi.ac.upg.akiwacu.pret.PretRepository;
 import bi.ac.upg.akiwacu.remboursement.RemboursementRepository;
@@ -27,6 +29,10 @@ class DashboardServiceTest {
     @Mock
     private CotisationRepository cotisationRepository;
     @Mock
+    private CycleRepository cycleRepository;
+    @Mock
+    private DemandePretRepository demandePretRepository;
+    @Mock
     private PretRepository pretRepository;
     @Mock
     private RemboursementRepository remboursementRepository;
@@ -40,6 +46,8 @@ class DashboardServiceTest {
         service = new DashboardService(
                 membreRepository,
                 cotisationRepository,
+                cycleRepository,
+                demandePretRepository,
                 pretRepository,
                 remboursementRepository,
                 transactionRepository,
@@ -47,6 +55,8 @@ class DashboardServiceTest {
         TenantContext.setTontineId(1L);
         when(membreRepository.findAll()).thenReturn(java.util.List.of());
         when(cotisationRepository.findAll()).thenReturn(java.util.List.of());
+        when(cycleRepository.findAll()).thenReturn(java.util.List.of());
+        when(demandePretRepository.findAll()).thenReturn(java.util.List.of());
         when(pretRepository.findAll()).thenReturn(java.util.List.of());
         when(remboursementRepository.findAll()).thenReturn(java.util.List.of());
         when(transactionRepository.findAll()).thenReturn(java.util.List.of());
