@@ -48,17 +48,39 @@ main, debout, en réunion**, sur un Android d'entrée de gamme, avec un réseau 
 
 Ce n'est pas un tableau de bord d'analyste. C'est un **registre**.
 
-### Trois directions défendables
+### Trois directions explorées, une choisie
 
-| | Direction | Ce que ça donne | Coût |
-|---|---|---|---|
-| **A** | **Registre haute lisibilité** — contraste fort, typographie large, cibles tactiles ≥ 48 px, chiffres tabulaires, peu de couleurs (une seule d'accent) | Se lit en plein soleil, se tape sans regarder, zéro ornement | Le plus rapide à construire, le plus facile à défendre |
-| **B** | **Style application bancaire mobile** — cartes arrondies, dégradés doux, animations de transition | Impressionne à la première capture | Chaque écran coûte 30 à 50 % de plus, et les animations rament sur un téléphone bas de gamme |
-| **C** | **shadcn/ui par défaut, sans thème** | Livré en zéro temps | Se voit : c'est visiblement le thème par défaut, et ça ne raconte aucune décision |
+Pas trois descriptions en l'air : trois maquettes réelles et comparables (écran de
+saisie + tableau de bord président), explorées ensemble le 20 août 2026 —
+[canvas de la direction visuelle](https://claude.ai/code/artifact/2e81e057-b8b6-406d-8f72-aec38a588282).
 
-**Ma recommandation : A.** Elle découle du cas d'usage décrit dans ton propre ADR, ce
-qui en fait une réponse de soutenance et pas un goût personnel. Et elle est la moins
-chère des trois.
+| | Direction | L'idée |
+|---|---|---|
+| A | Le Registre | La liste est le document — rangées réglées, montants tabulaires, saisie en feuille au bas de l'écran |
+| B | Le Guichet | Une carte par membre ; toucher une carte l'ouvre sur place pour saisir |
+| **C** | **Le Compteur** — **retenue** | Un membre à la fois, plein écran, total qui grimpe en direct en bandeau fixe |
+
+**Direction C retenue.** Elle colle le mieux au cas d'usage de l'ADR-001 : un
+trésorier qui compte à voix haute pendant que les cotisations rentrent, pas
+quelqu'un qui parcourt une liste. Le bandeau de total fixe en haut donne à tout le
+monde dans la salle le même repère visuel que le décompte oral. Voir
+`docs/DECISIONS.md` D-34.
+
+### Jeton de design — Direction C, à centraliser dans `index.css` / le thème Tailwind
+
+- **Polices** (Google Fonts) : `Space Grotesk` (titres, montants, boutons) ·
+  `IBM Plex Sans` (corps de texte)
+- **Bandeau d'en-tête / fond sombre** : `oklch(0.2 0.015 70)` texte
+  `oklch(0.96 0.01 80)`
+- **Accent (montants, boutons d'action)** : `oklch(0.75 0.15 85)` — ambre
+- **Fond clair (corps de page)** : `oklch(0.97 0.005 90)` texte
+  `oklch(0.2 0.01 90)`
+- **Chiffres** : `font-variant-numeric: tabular-nums` partout où un montant
+  s'affiche
+- **Rayon des boutons/cartes** : 8–10 px · **cibles tactiles** : ≥ 48 px
+
+Ces valeurs viennent des maquettes du canvas — les copier telles quelles en
+variables CSS/thème Tailwind (P1), ne pas en réinventer de nouvelles.
 
 ### Les contraintes non négociables, quelle que soit la direction
 
@@ -190,9 +212,11 @@ gh variable set CLIENT_ENABLED --body true
 ## 6. Ce qui se dit à la soutenance
 
 > Le client est responsive et non natif parce que le terrain est mobile et
-> l'administration est au bureau — ADR-001. La direction visuelle découle du cas
-> d'usage : l'écran le plus utilisé est une saisie de 40 cotisations à une main, en
-> réunion, donc contraste fort, grandes cibles tactiles et chiffres tabulaires. Le
-> client TypeScript est **généré depuis la spécification OpenAPI** : aucun appel écrit
-> à la main, et un changement de contrat côté API casse la compilation du client
-> plutôt que de casser l'application en démonstration.
+> l'administration est au bureau — ADR-001. La direction visuelle (« Le Compteur »)
+> découle du même cas d'usage : un trésorier qui compte à voix haute en réunion, pas
+> quelqu'un qui parcourt une liste — d'où un membre à la fois, plein écran, et un
+> total qui grimpe en direct dans un bandeau fixe. Trois directions ont été maquettées
+> et comparées avant de trancher (D-34), pas choisies au goût. Le client TypeScript
+> est **généré depuis la spécification OpenAPI** : aucun appel écrit à la main, et un
+> changement de contrat côté API casse la compilation du client plutôt que de casser
+> l'application en démonstration.
