@@ -26,9 +26,9 @@ provider "proxmox" {
 
 locals {
   vms = {
-    "vm-dev-g1"    = { id = 301, cores = 2, memory = 2560, disk = 32, ip = "192.168.0.50" }
-    "vm-prod-g1"   = { id = 302, cores = 2, memory = 2560, disk = 32, ip = "192.168.0.51" }
-    "vm-devops-g1" = { id = 303, cores = 4, memory = 6144, disk = 32, ip = "192.168.0.52" }
+    "vm-dev-g1"    = { id = 301, cores = 2, memory = 2560, disk = 12, ip = "192.168.0.50" }
+    "vm-prod-g1"   = { id = 302, cores = 2, memory = 2560, disk = 12, ip = "192.168.0.51" }
+    "vm-devops-g1" = { id = 303, cores = 4, memory = 6144, disk = 25, ip = "192.168.0.52" }
   }
 }
 
