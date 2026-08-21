@@ -10,4 +10,6 @@ import org.springframework.stereotype.Repository;
  */
 @Repository
 public interface TontineRepository extends JpaRepository<Tontine, Long> {
+
+    boolean existsByNom(String nom);
 }
