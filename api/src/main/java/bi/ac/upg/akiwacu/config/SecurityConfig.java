@@ -5,6 +5,7 @@ import bi.ac.upg.akiwacu.common.dto.ErreurResponse;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
@@ -28,6 +29,12 @@ import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
  * aucune session côté serveur. /api/auth/login est la seule route métier
  * publique ; tout le reste exige un jeton valide, l'autorisation par rôle
  * étant affinée route par route dans chaque contrôleur (@PreAuthorize).
+ *
+ * Seconde exception publique, scopée à la méthode HTTP : POST /api/tontines
+ * est le flux d'inscription en libre-service d'une nouvelle tontine (Tontine +
+ * premier Utilisateur ADMIN créés ensemble, avant qu'aucun JWT/TenantContext
+ * n'existe). GET/{id}, PUT/{id}, DELETE/{id} sur ce même chemin restent
+ * authentifiés — voir docs/DECISIONS.md D-35.
  */
 @Configuration
 @EnableWebSecurity

@@ -6,6 +6,7 @@ import bi.ac.upg.akiwacu.common.exception.OperationVerrouilleeException;
 import bi.ac.upg.akiwacu.common.exception.RegleMetierException;
 import bi.ac.upg.akiwacu.common.exception.RessourceIntrouvableException;
 import jakarta.servlet.http.HttpServletRequest;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
@@ -64,6 +65,20 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErreurResponse> gererConflitMetier(RuntimeException ex,
                                                                 HttpServletRequest requete) {
         return construire(HttpStatus.CONFLICT, ex.getMessage(), requete);
+    }
+
+    /**
+     * Filet de sécurité, pas la défense principale : une contrainte UNIQUE/NOT NULL
+     * violée en base doit remonter en 409, même si le service appelant a omis de la
+     * vérifier en amont (ex. RegleMetierException dédiée, comme verifierNomDisponible
+     * dans TontineService). Le message ne reprend jamais ex.getMessage() : la cause
+     * JDBC/Hibernate y détaille le nom de contrainte et parfois la requête SQL —
+     * un détail d'implémentation à ne jamais exposer au client.
+     */
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ResponseEntity<ErreurResponse> gererViolationContrainteBaseDeDonnees(DataIntegrityViolationException ex,
+                                                                                   HttpServletRequest requete) {
+        return construire(HttpStatus.CONFLICT, "Cette opération viole une contrainte d'unicité existante", requete);
     }
 
     private ResponseEntity<ErreurResponse> construire(HttpStatus statut, String message,
