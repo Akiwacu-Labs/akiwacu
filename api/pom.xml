@@ -24,10 +24,10 @@
     <jacoco.version>0.8.12</jacoco.version>
     <sonar-maven-plugin.version>5.1.0.4751</sonar-maven-plugin.version>
     <mapstruct.version>1.6.3</mapstruct.version>
-    <!-- Seuil de couverture. Le socle n'a presque pas de tests : il DOIT rester
-         à 0.00 tant que la PR socle n'est pas mergée, sinon elle ne peut pas passer.
-         Klein le relève ensuite : 0.50 (D3) → 0.60 (D4) → 0.80 (D6). -->
-    <jacoco.line.coverage>0.00</jacoco.line.coverage>
+    <!-- Seuil de couverture à cliquet (D-10) : 0.50 (D3) → 0.60 (D4) → 0.80 (D6),
+         ne redescend jamais. Bloquant seulement quand COVERAGE_GATE=true côté
+         GitHub Actions (cicd-develop.yml/cicd-main.yml). -->
+    <jacoco.line.coverage>0.50</jacoco.line.coverage>
   </properties>
 
   <dependencies>
