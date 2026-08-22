@@ -9,6 +9,7 @@ import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.JoinColumn;
+import jakarta.persistence.Lob;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
@@ -64,4 +65,8 @@ public class Recu extends BaseEntity {
 
     @Column(name = "chemin_fichier", length = 255)
     private String cheminFichier;
+
+    @Lob
+    @Column(name = "contenu_pdf", columnDefinition = "bytea")
+    private byte[] contenuPdf;
 }
