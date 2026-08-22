@@ -23,6 +23,7 @@
     <jjwt.version>0.12.6</jjwt.version>
     <jacoco.version>0.8.12</jacoco.version>
     <sonar-maven-plugin.version>5.1.0.4751</sonar-maven-plugin.version>
+    <mapstruct.version>1.6.3</mapstruct.version>
     <!-- Seuil de couverture. Le socle n'a presque pas de tests : il DOIT rester
          à 0.00 tant que la PR socle n'est pas mergée, sinon elle ne peut pas passer.
          Klein le relève ensuite : 0.50 (D3) → 0.60 (D4) → 0.80 (D6). -->
@@ -109,6 +110,13 @@
       <optional>true</optional>
     </dependency>
 
+    <!-- Mapping entité <-> DTO, un mapper par domaine (voir CLAUDE.md). -->
+    <dependency>
+      <groupId>org.mapstruct</groupId>
+      <artifactId>mapstruct</artifactId>
+      <version>${mapstruct.version}</version>
+    </dependency>
+
     <dependency>
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-test</artifactId>
@@ -123,6 +131,34 @@
 
   <build>
     <plugins>
+      <!-- Ordre des annotation processors : Lombok doit générer les
+           getters/setters AVANT que MapStruct ne les lise pour écrire les
+           mappers — sans ce bloc, les deux tournent dans un ordre non
+           garanti et MapStruct peut ne pas voir les accesseurs Lombok. -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-compiler-plugin</artifactId>
+        <configuration>
+          <annotationProcessorPaths>
+            <path>
+              <groupId>org.projectlombok</groupId>
+              <artifactId>lombok</artifactId>
+              <version>${lombok.version}</version>
+            </path>
+            <path>
+              <groupId>org.mapstruct</groupId>
+              <artifactId>mapstruct-processor</artifactId>
+              <version>${mapstruct.version}</version>
+            </path>
+            <path>
+              <groupId>org.projectlombok</groupId>
+              <artifactId>lombok-mapstruct-binding</artifactId>
+              <version>0.2.0</version>
+            </path>
+          </annotationProcessorPaths>
+        </configuration>
+      </plugin>
+
       <plugin>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-maven-plugin</artifactId>

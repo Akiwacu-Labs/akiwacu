@@ -169,6 +169,26 @@ cas d'exception (ressource introuvable, non autorisé).
 
 - Services : Mockito pur, pas de contexte Spring
 - Contrôleurs : `@WebMvcTest` + `MockMvc` + `@MockBean` sur le service
+
+  ⚠ Si ton contrôleur porte `@PreAuthorize`, `@WebMvcTest` ne charge PAS
+  `SecurityConfig` (c'est une `@Configuration` ordinaire, exclue du slice) —
+  donc `@EnableMethodSecurity` n'est pas actif et `@PreAuthorize` ne fait
+  **rien**, silencieusement. Un `@WithMockUser(roles = "...")` insuffisant
+  passera quand même (testé : un rôle `MEMBRE` obtenait 201 sur un endpoint
+  réservé à `GESTIONNAIRE`). Deux ajouts obligatoires dans ce cas :
+  ```java
+  @WebMvcTest(TonController.class)
+  @AutoConfigureMockMvc(addFilters = false)  // sinon la CSRF par défaut bloque tes POST
+  @Import(TonControllerTest.SecuriteMethodeTestConfig.class)
+  class TonControllerTest {
+      @TestConfiguration
+      @EnableMethodSecurity
+      static class SecuriteMethodeTestConfig { }
+      // ...
+  }
+  ```
+  Écris toujours un test avec un rôle insuffisant qui attend 403 — c'est lui
+  qui prouve que l'annotation est vraiment appliquée, pas juste présente.
 - Repositories : `@DataJpaTest`
 - Intégration : Testcontainers PostgreSQL (Klein)
 - **Entités : exigées explicitement par l'énoncé §11.1**
