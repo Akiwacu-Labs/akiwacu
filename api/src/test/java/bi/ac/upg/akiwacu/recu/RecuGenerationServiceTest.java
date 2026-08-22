@@ -2,6 +2,7 @@ package bi.ac.upg.akiwacu.recu;
 
 import bi.ac.upg.akiwacu.common.exception.OperationVerrouilleeException;
 import bi.ac.upg.akiwacu.common.exception.RessourceIntrouvableException;
+import bi.ac.upg.akiwacu.common.TenantContext;
 import bi.ac.upg.akiwacu.cotisation.Cotisation;
 import bi.ac.upg.akiwacu.cotisation.CotisationRepository;
 import bi.ac.upg.akiwacu.cotisation.ModePaiement;
@@ -13,6 +14,7 @@ import bi.ac.upg.akiwacu.utilisateur.Role;
 import bi.ac.upg.akiwacu.utilisateur.Utilisateur;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
@@ -32,6 +34,11 @@ import static org.mockito.Mockito.lenient;
 @ExtendWith(MockitoExtension.class)
 @DisplayName("RecuGenerationService — génération et verrouillage")
 class RecuGenerationServiceTest {
+
+    @AfterEach
+    void nettoyerTenant() {
+        TenantContext.clear();
+    }
 
     @Mock
     private RecuRepository recuRepository;
@@ -116,6 +123,17 @@ class RecuGenerationServiceTest {
         when(cotisationRepository.findById(404L)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> service.genererPourCotisation(404L))
+                .isInstanceOf(RessourceIntrouvableException.class);
+    }
+
+    @Test
+    @DisplayName("R1 — masque l'état d'une opération appartenant à une autre tontine")
+    void shouldNotRevealStateFromAnotherTontine() {
+        Cotisation cotisation = uneCotisation(10L);
+        when(cotisationRepository.findById(10L)).thenReturn(Optional.of(cotisation));
+        TenantContext.setTontineId(99L);
+
+        assertThatThrownBy(() -> service.genererPourCotisation(10L))
                 .isInstanceOf(RessourceIntrouvableException.class);
     }
 

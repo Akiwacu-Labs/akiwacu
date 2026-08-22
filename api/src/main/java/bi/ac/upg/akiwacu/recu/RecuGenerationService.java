@@ -53,9 +53,9 @@ public class RecuGenerationService implements RecuService {
     public Recu genererPourCotisation(Long cotisationId) {
         Cotisation operation = cotisationRepository.findById(cotisationId)
                 .orElseThrow(() -> new RessourceIntrouvableException("Cotisation introuvable : " + cotisationId));
-        verifierOperationDisponible(TypeOperationRecu.COTISATION, cotisationId, operation.estVerrouillee());
         var membre = operation.getMembre();
         verifierTenant(membre.getTontine().getId());
+        verifierOperationDisponible(TypeOperationRecu.COTISATION, cotisationId, operation.estVerrouillee());
         return generer(TypeOperationRecu.COTISATION, cotisationId, operation.getDateCotisation(), membre,
                 membre.getTontine().getNom(), membre.getNom() + " " + membre.getPrenom(),
                 operation.getMontant(), operation.getValidePar(), recu -> {
@@ -70,10 +70,10 @@ public class RecuGenerationService implements RecuService {
     public Recu genererPourPret(Long pretId) {
         Pret operation = pretRepository.findById(pretId)
                 .orElseThrow(() -> new RessourceIntrouvableException("Prêt introuvable : " + pretId));
-        verifierOperationDisponible(TypeOperationRecu.DEBLOCAGE_PRET, pretId,
-                operation.isVerrouille() || operation.getRecu() != null);
         var membre = operation.getMembre();
         verifierTenant(membre.getTontine().getId());
+        verifierOperationDisponible(TypeOperationRecu.DEBLOCAGE_PRET, pretId,
+                operation.isVerrouille() || operation.getRecu() != null);
         return generer(TypeOperationRecu.DEBLOCAGE_PRET, pretId, operation.getDateDeblocage(), membre,
                 membre.getTontine().getNom(), membre.getNom() + " " + membre.getPrenom(),
                 operation.getMontantAccorde(), operation.getValidePar(), recu -> {
@@ -88,10 +88,10 @@ public class RecuGenerationService implements RecuService {
     public Recu genererPourRemboursement(Long remboursementId) {
         Remboursement operation = remboursementRepository.findById(remboursementId)
                 .orElseThrow(() -> new RessourceIntrouvableException("Remboursement introuvable : " + remboursementId));
-        verifierOperationDisponible(TypeOperationRecu.REMBOURSEMENT, remboursementId,
-                operation.isVerrouille() || operation.getRecu() != null);
         var membre = operation.getPret().getMembre();
         verifierTenant(membre.getTontine().getId());
+        verifierOperationDisponible(TypeOperationRecu.REMBOURSEMENT, remboursementId,
+                operation.isVerrouille() || operation.getRecu() != null);
         return generer(TypeOperationRecu.REMBOURSEMENT, remboursementId, operation.getDateRemboursement(), membre,
                 membre.getTontine().getNom(), membre.getNom() + " " + membre.getPrenom(),
                 operation.getMontant(), operation.getValidePar(), recu -> {
