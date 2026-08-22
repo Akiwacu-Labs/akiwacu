@@ -3,11 +3,11 @@ package bi.ac.upg.akiwacu.caisse;
 import bi.ac.upg.akiwacu.caisse.dto.TransactionCaisseRequest;
 import bi.ac.upg.akiwacu.caisse.dto.TransactionCaisseResponse;
 import bi.ac.upg.akiwacu.caisse.mapper.TransactionCaisseMapper;
-import bi.ac.upg.akiwacu.common.CycleGuardService;
 import bi.ac.upg.akiwacu.common.TenantContext;
 import bi.ac.upg.akiwacu.common.ValidateurCourantService;
 import bi.ac.upg.akiwacu.common.exception.RessourceIntrouvableException;
 import bi.ac.upg.akiwacu.cycle.Cycle;
+import bi.ac.upg.akiwacu.cycle.CycleGuardService;
 import bi.ac.upg.akiwacu.cycle.CycleRepository;
 import bi.ac.upg.akiwacu.tontine.Tontine;
 import bi.ac.upg.akiwacu.tontine.TontineRepository;
@@ -52,7 +52,7 @@ public class TransactionCaisseService {
             if (!cycle.getTontine().getId().equals(tontineId)) {
                 throw new RessourceIntrouvableException("Cycle introuvable");
             }
-            cycle = cycleGuardService.assertCycleActif(request.cycleId());
+            cycleGuardService.assertCycleActif(tontineId);
         }
 
         TransactionCaisse transaction = TransactionCaisse.builder()

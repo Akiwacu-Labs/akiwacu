@@ -1,11 +1,11 @@
 package bi.ac.upg.akiwacu.remboursement;
 
-import bi.ac.upg.akiwacu.common.CycleGuardService;
 import bi.ac.upg.akiwacu.common.TenantContext;
 import bi.ac.upg.akiwacu.common.ValidateurCourantService;
 import bi.ac.upg.akiwacu.common.exception.OperationVerrouilleeException;
 import bi.ac.upg.akiwacu.common.exception.RegleMetierException;
 import bi.ac.upg.akiwacu.common.exception.RessourceIntrouvableException;
+import bi.ac.upg.akiwacu.cycle.CycleGuardService;
 import bi.ac.upg.akiwacu.pret.Pret;
 import bi.ac.upg.akiwacu.pret.PretRepository;
 import bi.ac.upg.akiwacu.remboursement.dto.RemboursementRequest;
@@ -41,7 +41,7 @@ public class RemboursementService {
     public RemboursementResponse enregistrer(RemboursementRequest request) {
         Pret pret = trouverPret(request.pretId());
         verifierTontine(pret);
-        cycleGuardService.assertCycleActif(pret.getCycle().getId());
+        cycleGuardService.assertCycleActif(TenantContext.getTontineId());
         if (request.montant().compareTo(pret.soldeRestant()) > 0) {
             throw new RegleMetierException("Le remboursement dépasse le solde restant du prêt");
         }

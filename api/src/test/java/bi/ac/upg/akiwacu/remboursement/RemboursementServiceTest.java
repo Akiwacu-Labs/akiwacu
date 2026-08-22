@@ -1,10 +1,10 @@
 package bi.ac.upg.akiwacu.remboursement;
 
-import bi.ac.upg.akiwacu.common.CycleGuardService;
 import bi.ac.upg.akiwacu.common.TenantContext;
 import bi.ac.upg.akiwacu.common.ValidateurCourantService;
 import bi.ac.upg.akiwacu.common.exception.RegleMetierException;
 import bi.ac.upg.akiwacu.cycle.Cycle;
+import bi.ac.upg.akiwacu.cycle.CycleGuardService;
 import bi.ac.upg.akiwacu.cycle.StatutCycle;
 import bi.ac.upg.akiwacu.membre.Membre;
 import bi.ac.upg.akiwacu.pret.Pret;
@@ -72,7 +72,7 @@ class RemboursementServiceTest {
     void shouldRejectRepaymentExceedingRemainingBalance() {
         Pret pret = unPret(new BigDecimal("100000"));
         when(pretRepository.findById(5L)).thenReturn(Optional.of(pret));
-        when(cycleGuardService.assertCycleActif(3L)).thenReturn(pret.getCycle());
+        when(cycleGuardService.assertCycleActif(1L)).thenReturn(pret.getCycle());
 
         assertThatThrownBy(() -> service.enregistrer(new RemboursementRequest(
                 5L, new BigDecimal("100001"), LocalDate.of(2026, 8, 21))))
