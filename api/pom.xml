@@ -94,11 +94,6 @@
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-actuator</artifactId>
     </dependency>
-    <dependency>
-      <groupId>io.micrometer</groupId>
-      <artifactId>micrometer-registry-prometheus</artifactId>
-    </dependency>
-
     <!-- Génération des reçus PDF partagés par le domaine recu. -->
     <dependency>
       <groupId>com.github.librepdf</groupId>
