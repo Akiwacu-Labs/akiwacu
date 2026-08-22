@@ -57,7 +57,8 @@ class TransactionCaisseServiceTest {
                 new TransactionCaisseMapper());
         TenantContext.setTontineId(1L);
         SecurityContextHolder.getContext().setAuthentication(
-                new UsernamePasswordAuthenticationToken("tresorier@akiwacu.test", "secret"));
+                new UsernamePasswordAuthenticationToken(
+                        "tresorier@akiwacu.test", "secret", java.util.List.of()));
     }
 
     @AfterEach
