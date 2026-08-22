@@ -628,6 +628,36 @@ le thème Tailwind du client (P1) — ne pas en réinventer.
 
 ---
 
+### D-35 — `POST /api/tontines` : inscription en libre-service, exception documentée à R1/D-20
+
+**Décidé par Andy, chef de projet, le 22 août 2026 :** la création d'une tontine
+est un flux d'inscription public — un nouveau groupe s'enregistre lui-même et
+crée dans la même transaction sa `Tontine` et son premier `Utilisateur(ADMIN)`.
+`SecurityConfig` déclare `POST /api/tontines` public via un matcher scopé à la
+méthode HTTP (`requestMatchers(HttpMethod.POST, "/api/tontines")`), jamais le
+chemin entier — `GET/{id}`, `PUT/{id}`, `DELETE/{id}` restent authentifiés et
+tenant-scoped comme le reste de l'API.
+
+**Envisagé d'abord :** un compte « super-admin » plateforme, hors tontine, qui
+créerait les tontines pour le compte des groupes. Écarté : `Utilisateur.tontine`
+est une FK `NOT NULL` (voir MODELE-DE-DONNEES.md §2) et aucun rôle plateforme
+n'existe dans `Role` — l'ajouter aurait été une extension du modèle de données à
+quelques jours de la soutenance pour un besoin que rien ne justifie ici.
+
+**Motif :** à ce point de la création, il n'existe encore ni JWT ni `tontineId`
+à lire — `TenantContext.getTontineId()` lèverait son `IllegalStateException`.
+C'est la même situation que `AuthService.login()` (voir le commentaire de
+`TenantFilterAspect`), qui tourne déjà légitimement avant authentification.
+
+**Conséquence :** `TontineService.creer()` ne doit **jamais** appeler
+`TenantContext` — c'est, avec `AuthService.login()`, l'une des deux seules
+méthodes métier de la plateforme autorisées à s'en passer. `SecurityConfigTest`
+fixe cette règle : `POST /api/tontines` passe sans jeton, `GET /api/tontines`
+(même chemin, autre méthode) continue d'exiger un jeton — un matcher élargi par
+erreur au chemin entier casse ce test avant la revue de code.
+
+---
+
 ## Ce qui a été délibérément écarté
 
 | Écarté | Motif |
