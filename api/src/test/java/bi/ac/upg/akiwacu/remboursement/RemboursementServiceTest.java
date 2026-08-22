@@ -57,7 +57,8 @@ class RemboursementServiceTest {
                 new RemboursementMapper());
         TenantContext.setTontineId(1L);
         SecurityContextHolder.getContext().setAuthentication(
-                new UsernamePasswordAuthenticationToken("tresorier@akiwacu.test", "secret"));
+                new UsernamePasswordAuthenticationToken(
+                        "tresorier@akiwacu.test", "secret", java.util.List.of()));
     }
 
     @AfterEach
@@ -90,6 +91,7 @@ class RemboursementServiceTest {
                 .membre(membre)
                 .montantAccorde(montant)
                 .tauxInteret(BigDecimal.ZERO)
+                .dureeMois(1)
                 .remboursements(new java.util.ArrayList<>())
                 .build();
     }
