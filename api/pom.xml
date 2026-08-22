@@ -24,6 +24,9 @@
     <jacoco.version>0.8.12</jacoco.version>
     <sonar-maven-plugin.version>5.1.0.4751</sonar-maven-plugin.version>
     <mapstruct.version>1.6.3</mapstruct.version>
+    <!-- Testcontainers 1.20.x apporte un client Docker compatible avec les
+         daemon exposant une API minimale 1.40 (voir CI R6). -->
+    <testcontainers.version>1.20.6</testcontainers.version>
     <!-- Seuil de couverture à cliquet (D-10) : 0.50 (D3) → 0.60 (D4) → 0.80 (D6),
          ne redescend jamais. Bloquant seulement quand COVERAGE_GATE=true côté
          GitHub Actions (cicd-develop.yml/cicd-main.yml). -->
@@ -132,6 +135,16 @@
     <dependency>
       <groupId>org.springframework.security</groupId>
       <artifactId>spring-security-test</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.testcontainers</groupId>
+      <artifactId>junit-jupiter</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.testcontainers</groupId>
+      <artifactId>postgresql</artifactId>
       <scope>test</scope>
     </dependency>
   </dependencies>
