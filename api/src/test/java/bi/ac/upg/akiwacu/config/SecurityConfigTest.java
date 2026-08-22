@@ -70,6 +70,14 @@ class SecurityConfigTest {
     }
 
     @Test
+    @DisplayName("R1 — le téléchargement d'un reçu exige une authentification")
+    void shouldRejectAnonymousReceiptDownload() throws Exception {
+        mockMvc.perform(get("/api/recus/1/pdf"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.message").value("Authentification requise"));
+    }
+
+    @Test
     @DisplayName("cas nominal — /api/auth/login reste public, la requête atteint bien le contrôleur")
     void shouldLetAnonymousLoginReachController() throws Exception {
         // Arrange : le service métier refuse (mauvais mot de passe) — le message

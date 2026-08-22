@@ -81,6 +81,13 @@
       <artifactId>spring-boot-starter-actuator</artifactId>
     </dependency>
 
+    <!-- Génération des reçus PDF partagés par le domaine recu. -->
+    <dependency>
+      <groupId>com.github.librepdf</groupId>
+      <artifactId>openpdf</artifactId>
+      <version>2.0.3</version>
+    </dependency>
+
     <!-- Flyway : depuis la version 10, le module PostgreSQL est séparé -->
     <dependency>
       <groupId>org.flywaydb</groupId>
