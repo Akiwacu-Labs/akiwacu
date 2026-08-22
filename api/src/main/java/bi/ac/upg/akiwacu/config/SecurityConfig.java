@@ -12,6 +12,7 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.http.HttpMethod;
 
 import java.io.IOException;
 
@@ -26,6 +27,12 @@ import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
  * aucune session côté serveur. /api/auth/login est la seule route métier
  * publique ; tout le reste exige un jeton valide, l'autorisation par rôle
  * étant affinée route par route dans chaque contrôleur (@PreAuthorize).
+ *
+ * Seconde exception publique, scopée à la méthode HTTP : POST /api/tontines
+ * est le flux d'inscription en libre-service d'une nouvelle tontine (Tontine +
+ * premier Utilisateur ADMIN créés ensemble, avant qu'aucun JWT/TenantContext
+ * n'existe). GET/{id}, PUT/{id}, DELETE/{id} sur ce même chemin restent
+ * authentifiés — voir docs/DECISIONS.md D-35.
  */
 @Configuration
 @EnableWebSecurity
@@ -53,6 +60,7 @@ public class SecurityConfig {
                     "/swagger-ui/**",
                     "/swagger-ui.html"
                 ).permitAll()
+                .requestMatchers(HttpMethod.POST, "/api/tontines").permitAll()
                 .anyRequest().authenticated()
             )
             .exceptionHandling(exceptions -> exceptions
