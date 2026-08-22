@@ -1,9 +1,11 @@
 package bi.ac.upg.akiwacu.tontine;
 
+import bi.ac.upg.akiwacu.common.TenantContext;
 import bi.ac.upg.akiwacu.common.exception.RegleMetierException;
 import bi.ac.upg.akiwacu.common.exception.RessourceIntrouvableException;
 import bi.ac.upg.akiwacu.tontine.dto.TontineRequest;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -29,6 +31,11 @@ class TontineServiceTest {
 
     @InjectMocks
     private TontineService tontineService;
+
+    @AfterEach
+    void nettoyerContexteTenant() {
+        TenantContext.clear();
+    }
 
     private TontineRequest uneRequete() {
         return new TontineRequest("Twiyungunganye", "Épargne solidaire", LocalDate.of(2026, 8, 21),
@@ -72,10 +79,22 @@ class TontineServiceTest {
     @DisplayName("cas d'exception — refuse de consulter une tontine inconnue")
     void shouldThrowWhenTontineDoesNotExist() {
         // Ce test protège contre une réponse 200 vide qui masquerait une mauvaise URL côté client.
+        TenantContext.setTontineId(999L);
         when(tontineRepository.findById(999L)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> tontineService.trouverParId(999L))
                 .isInstanceOf(RessourceIntrouvableException.class)
                 .hasMessageContaining("999");
+    }
+
+    @Test
+    @DisplayName("R1 — refuse l'accès à une tontine d'un autre tenant")
+    void shouldRejectTontineFromAnotherTenant() {
+        // Même si l'identifiant existe, il ne doit pas être utilisable depuis un autre JWT.
+        TenantContext.setTontineId(7L);
+
+        assertThatThrownBy(() -> tontineService.trouverParId(8L))
+                .isInstanceOf(RessourceIntrouvableException.class)
+                .hasMessageContaining("8");
     }
 }

@@ -11,6 +11,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.boot.test.context.TestConfiguration;
+import org.springframework.context.annotation.Import;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
+import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.time.LocalDate;
@@ -19,14 +23,21 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(TontineController.class)
 @AutoConfigureMockMvc(addFilters = false)
+@Import(TontineControllerTest.MethodSecurityTestConfiguration.class)
 @DisplayName("TontineController — endpoints /api/tontines")
 class TontineControllerTest {
+
+    @TestConfiguration
+    @EnableMethodSecurity
+    static class MethodSecurityTestConfiguration {
+    }
 
     @Autowired
     private MockMvc mockMvc;
@@ -78,5 +89,17 @@ class TontineControllerTest {
         mockMvc.perform(post("/api/tontines").contentType("application/json")
                         .content(objectMapper.writeValueAsString(requete)))
                 .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    @WithMockUser(username = "membre@akiwacu.bi", roles = "MEMBRE")
+    @DisplayName("R1 — un membre ne peut pas modifier une tontine")
+    void shouldReturn403WhenRoleCannotModifyTontine() throws Exception {
+        var requete = new TontineRequest("Nouveau nom", "Description", LocalDate.of(2026, 8, 21),
+                StatutTontine.ACTIVE);
+
+        mockMvc.perform(put("/api/tontines/12").contentType("application/json")
+                        .content(objectMapper.writeValueAsString(requete)))
+                .andExpect(status().isForbidden());
     }
 }
