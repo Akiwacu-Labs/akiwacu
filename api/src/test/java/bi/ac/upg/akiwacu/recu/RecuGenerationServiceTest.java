@@ -89,6 +89,7 @@ class RecuGenerationServiceTest {
         when(cotisationRepository.findById(10L)).thenReturn(Optional.of(cotisation));
         when(recuRepository.findByTypeOperationAndOperationId(TypeOperationRecu.COTISATION, 10L))
                 .thenReturn(Optional.of(new Recu()));
+        TenantContext.setTontineId(7L);
 
         assertThatThrownBy(() -> service.genererPourCotisation(10L))
                 .isInstanceOf(OperationVerrouilleeException.class);
@@ -138,6 +139,16 @@ class RecuGenerationServiceTest {
     }
 
     @Test
+    @DisplayName("R1 — refuse la génération si aucun contexte tenant n'est présent")
+    void shouldRejectReceiptWithoutTenantContext() {
+        Cotisation cotisation = uneCotisation(10L);
+        when(cotisationRepository.findById(10L)).thenReturn(Optional.of(cotisation));
+
+        assertThatThrownBy(() -> service.genererPourCotisation(10L))
+                .isInstanceOf(RessourceIntrouvableException.class);
+    }
+
+    @Test
     @DisplayName("Le PDF généré est un document valide et non vide")
     void shouldProduceValidNonEmptyPdf() {
         Cotisation cotisation = uneCotisation(10L);
@@ -149,6 +160,7 @@ class RecuGenerationServiceTest {
     }
 
     private void preparerCotisation(Cotisation cotisation, long numero) {
+        TenantContext.setTontineId(7L);
         when(cotisationRepository.findById(cotisation.getId())).thenReturn(Optional.of(cotisation));
         when(recuRepository.findByTypeOperationAndOperationId(TypeOperationRecu.COTISATION, cotisation.getId()))
                 .thenReturn(Optional.empty());

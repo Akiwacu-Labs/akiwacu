@@ -138,7 +138,10 @@ public class RecuGenerationService implements RecuService {
     }
 
     private void verifierTenant(Long tontineId) {
-        if (TenantContext.estDefini() && !TenantContext.getTontineId().equals(tontineId)) {
+        if (!TenantContext.estDefini()) {
+            throw new RessourceIntrouvableException("Tontine courante absente");
+        }
+        if (!TenantContext.getTontineId().equals(tontineId)) {
             throw new RessourceIntrouvableException("Opération hors de la tontine courante");
         }
     }
