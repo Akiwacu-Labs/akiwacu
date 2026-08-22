@@ -47,10 +47,12 @@ public class TransactionCaisseService {
                 .orElseThrow(() -> new RessourceIntrouvableException("Tontine introuvable"));
         Cycle cycle = null;
         if (request.cycleId() != null) {
-            cycle = cycleGuardService.assertCycleActif(request.cycleId());
+            cycle = cycleRepository.findById(request.cycleId())
+                    .orElseThrow(() -> new RessourceIntrouvableException("Cycle introuvable"));
             if (!cycle.getTontine().getId().equals(tontineId)) {
                 throw new RessourceIntrouvableException("Cycle introuvable");
             }
+            cycle = cycleGuardService.assertCycleActif(request.cycleId());
         }
 
         TransactionCaisse transaction = TransactionCaisse.builder()

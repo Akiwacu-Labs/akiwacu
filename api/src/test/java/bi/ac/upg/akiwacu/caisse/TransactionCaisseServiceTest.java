@@ -5,7 +5,10 @@ import bi.ac.upg.akiwacu.caisse.mapper.TransactionCaisseMapper;
 import bi.ac.upg.akiwacu.common.CycleGuardService;
 import bi.ac.upg.akiwacu.common.TenantContext;
 import bi.ac.upg.akiwacu.common.ValidateurCourantService;
+import bi.ac.upg.akiwacu.common.exception.RessourceIntrouvableException;
+import bi.ac.upg.akiwacu.cycle.Cycle;
 import bi.ac.upg.akiwacu.cycle.CycleRepository;
+import bi.ac.upg.akiwacu.cycle.StatutCycle;
 import bi.ac.upg.akiwacu.tontine.Tontine;
 import bi.ac.upg.akiwacu.tontine.TontineRepository;
 import bi.ac.upg.akiwacu.utilisateur.Utilisateur;
@@ -25,8 +28,10 @@ import java.time.LocalDate;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -93,5 +98,34 @@ class TransactionCaisseServiceTest {
 
         assertThat(response.valideParId()).isEqualTo(7L);
         verify(repository).save(any(TransactionCaisse.class));
+    }
+
+    @Test
+    @DisplayName("R1 — masque un cycle d'une autre tontine avant la garde R2")
+    void shouldNotAccessDataFromAnotherTontine() {
+        Tontine tontineCourante = Tontine.builder().nom("Akiwacu").build();
+        tontineCourante.setId(1L);
+        Tontine autreTontine = Tontine.builder().nom("Autre tontine").build();
+        autreTontine.setId(2L);
+        Cycle cycleEtranger = Cycle.builder()
+                .tontine(autreTontine)
+                .statut(StatutCycle.OUVERT)
+                .build();
+        cycleEtranger.setId(3L);
+
+        when(tontineRepository.findById(1L)).thenReturn(Optional.of(tontineCourante));
+        when(cycleRepository.findById(3L)).thenReturn(Optional.of(cycleEtranger));
+
+        assertThatThrownBy(() -> service.enregistrer(new TransactionCaisseRequest(
+                3L,
+                SensTransaction.ENTREE,
+                new BigDecimal("50000.00"),
+                "Cotisation en espèces",
+                LocalDate.of(2026, 8, 21),
+                "COTISATION:42")))
+                .isInstanceOf(RessourceIntrouvableException.class)
+                .hasMessage("Cycle introuvable");
+
+        verifyNoInteractions(cycleGuardService);
     }
 }
