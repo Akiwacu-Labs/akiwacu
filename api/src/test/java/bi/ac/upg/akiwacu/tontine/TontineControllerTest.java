@@ -57,11 +57,10 @@ class TontineControllerTest {
     void shouldCreateTontineAndReturn201() throws Exception {
         // Arrange
         var requete = new TontineCreationRequest("Twiyungunganye", "Épargne solidaire",
-                LocalDate.of(2026, 8, 21), StatutTontine.ACTIVE,
                 new TontineCreationRequest.AdministrateurCreation(
                         "admin@twiyungunganye.bi", "motdepasse-solide", "Ndayisenga", "Alice", null));
-        var reponse = new TontineResponse(12L, requete.nom(), requete.description(), requete.dateCreation(),
-                requete.statut());
+        var reponse = new TontineResponse(12L, requete.nom(), requete.description(), LocalDate.of(2026, 8, 22),
+                StatutTontine.ACTIVE);
         when(tontineService.creer(any())).thenReturn(reponse);
 
         // Act & Assert : le contrôleur délègue puis expose la ressource créée et son URI.
@@ -87,8 +86,7 @@ class TontineControllerTest {
     @Test
     @DisplayName("cas de validation — POST sans nom renvoie 400")
     void shouldReturn400WhenNameIsBlank() throws Exception {
-        var requete = new TontineCreationRequest("", "Description", LocalDate.of(2026, 8, 21),
-                StatutTontine.ACTIVE,
+        var requete = new TontineCreationRequest("", "Description",
                 new TontineCreationRequest.AdministrateurCreation(
                         "admin@twiyungunganye.bi", "motdepasse-solide", "Ndayisenga", "Alice", null));
 

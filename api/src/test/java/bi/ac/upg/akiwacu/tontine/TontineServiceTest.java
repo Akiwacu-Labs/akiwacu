@@ -52,7 +52,6 @@ class TontineServiceTest {
 
     private TontineCreationRequest uneRequeteCreation() {
         return new TontineCreationRequest("Twiyungunganye", "Épargne solidaire",
-                LocalDate.of(2026, 8, 21), StatutTontine.ACTIVE,
                 new TontineCreationRequest.AdministrateurCreation(
                         "admin@twiyungunganye.bi", "motdepasse-solide", "Ndayisenga", "Alice", null));
     }
@@ -62,6 +61,7 @@ class TontineServiceTest {
     void shouldCreateTontine() {
         // Arrange : le nom choisi n'est pas encore utilisé.
         when(tontineRepository.existsByNom("Twiyungunganye")).thenReturn(false);
+        when(utilisateurRepository.findByEmail("admin@twiyungunganye.bi")).thenReturn(Optional.empty());
         when(passwordEncoder.encode("motdepasse-solide")).thenReturn("hash-motdepasse");
         when(tontineRepository.save(any(Tontine.class))).thenAnswer(invocation -> {
             var tontine = invocation.getArgument(0, Tontine.class);
@@ -90,6 +90,18 @@ class TontineServiceTest {
         assertThatThrownBy(() -> tontineService.creer(uneRequeteCreation()))
                 .isInstanceOf(RegleMetierException.class)
                 .hasMessageContaining("déjà le nom");
+    }
+
+    @Test
+    @DisplayName("cas d'erreur métier — refuse un email administrateur déjà utilisé")
+    void shouldRejectDuplicateAdministratorEmail() {
+        when(tontineRepository.existsByNom("Twiyungunganye")).thenReturn(false);
+        when(utilisateurRepository.findByEmail("admin@twiyungunganye.bi"))
+                .thenReturn(Optional.of(new bi.ac.upg.akiwacu.utilisateur.Utilisateur()));
+
+        assertThatThrownBy(() -> tontineService.creer(uneRequeteCreation()))
+                .isInstanceOf(RegleMetierException.class)
+                .hasMessage("Cet email est déjà utilisé");
     }
 
     @Test

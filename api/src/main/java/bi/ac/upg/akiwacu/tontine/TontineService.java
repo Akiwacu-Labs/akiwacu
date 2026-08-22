@@ -39,11 +39,12 @@ public class TontineService {
     @Transactional
     public TontineResponse creer(TontineCreationRequest requete) {
         verifierNomDisponible(requete.nom());
+        verifierEmailDisponible(requete.administrateur().email());
         var tontine = Tontine.builder()
                 .nom(requete.nom())
                 .description(requete.description())
-                .dateCreation(requete.dateCreation())
-                .statut(requete.statut())
+                .dateCreation(java.time.LocalDate.now())
+                .statut(StatutTontine.ACTIVE)
                 .build();
         var tontineCreee = tontineRepository.save(tontine);
         var administrateur = requete.administrateur();
@@ -96,6 +97,12 @@ public class TontineService {
     private void verifierNomDisponible(String nom) {
         if (tontineRepository.existsByNom(nom)) {
             throw new RegleMetierException("Une tontine porte déjà le nom : " + nom);
+        }
+    }
+
+    private void verifierEmailDisponible(String email) {
+        if (utilisateurRepository.findByEmail(email).isPresent()) {
+            throw new RegleMetierException("Cet email est déjà utilisé");
         }
     }
 
