@@ -1,5 +1,6 @@
 package bi.ac.upg.akiwacu.tontine;
 
+import bi.ac.upg.akiwacu.tontine.dto.TontineCreationRequest;
 import bi.ac.upg.akiwacu.tontine.dto.TontineRequest;
 import bi.ac.upg.akiwacu.tontine.dto.TontineResponse;
 import io.swagger.v3.oas.annotations.Operation;
@@ -50,7 +51,7 @@ public class TontineController {
             @ApiResponse(responseCode = "400", description = "Données invalides"),
             @ApiResponse(responseCode = "409", description = "Nom de tontine déjà utilisé")
     })
-    public ResponseEntity<TontineResponse> creer(@Valid @RequestBody TontineRequest requete) {
+    public ResponseEntity<TontineResponse> creer(@Valid @RequestBody TontineCreationRequest requete) {
         var reponse = tontineService.creer(requete);
         URI emplacement = ServletUriComponentsBuilder.fromCurrentRequest().path("/{id}")
                 .buildAndExpand(reponse.id()).toUri();

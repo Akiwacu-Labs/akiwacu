@@ -3,6 +3,7 @@ package bi.ac.upg.akiwacu.tontine;
 import bi.ac.upg.akiwacu.auth.JwtService;
 import bi.ac.upg.akiwacu.common.exception.RessourceIntrouvableException;
 import bi.ac.upg.akiwacu.tontine.dto.TontineRequest;
+import bi.ac.upg.akiwacu.tontine.dto.TontineCreationRequest;
 import bi.ac.upg.akiwacu.tontine.dto.TontineResponse;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.DisplayName;
@@ -55,8 +56,10 @@ class TontineControllerTest {
     @DisplayName("cas nominal — POST crée une tontine et renvoie 201")
     void shouldCreateTontineAndReturn201() throws Exception {
         // Arrange
-        var requete = new TontineRequest("Twiyungunganye", "Épargne solidaire", LocalDate.of(2026, 8, 21),
-                StatutTontine.ACTIVE);
+        var requete = new TontineCreationRequest("Twiyungunganye", "Épargne solidaire",
+                LocalDate.of(2026, 8, 21), StatutTontine.ACTIVE,
+                new TontineCreationRequest.AdministrateurCreation(
+                        "admin@twiyungunganye.bi", "motdepasse-solide", "Ndayisenga", "Alice", null));
         var reponse = new TontineResponse(12L, requete.nom(), requete.description(), requete.dateCreation(),
                 requete.statut());
         when(tontineService.creer(any())).thenReturn(reponse);
@@ -84,7 +87,10 @@ class TontineControllerTest {
     @Test
     @DisplayName("cas de validation — POST sans nom renvoie 400")
     void shouldReturn400WhenNameIsBlank() throws Exception {
-        var requete = new TontineRequest("", "Description", LocalDate.of(2026, 8, 21), StatutTontine.ACTIVE);
+        var requete = new TontineCreationRequest("", "Description", LocalDate.of(2026, 8, 21),
+                StatutTontine.ACTIVE,
+                new TontineCreationRequest.AdministrateurCreation(
+                        "admin@twiyungunganye.bi", "motdepasse-solide", "Ndayisenga", "Alice", null));
 
         mockMvc.perform(post("/api/tontines").contentType("application/json")
                         .content(objectMapper.writeValueAsString(requete)))

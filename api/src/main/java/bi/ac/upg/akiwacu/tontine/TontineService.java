@@ -3,10 +3,15 @@ package bi.ac.upg.akiwacu.tontine;
 import bi.ac.upg.akiwacu.common.TenantContext;
 import bi.ac.upg.akiwacu.common.exception.RegleMetierException;
 import bi.ac.upg.akiwacu.common.exception.RessourceIntrouvableException;
+import bi.ac.upg.akiwacu.tontine.dto.TontineCreationRequest;
 import bi.ac.upg.akiwacu.tontine.dto.TontineRequest;
 import bi.ac.upg.akiwacu.tontine.dto.TontineResponse;
+import bi.ac.upg.akiwacu.utilisateur.Role;
+import bi.ac.upg.akiwacu.utilisateur.Utilisateur;
+import bi.ac.upg.akiwacu.utilisateur.UtilisateurRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
@@ -18,6 +23,8 @@ import java.util.List;
 public class TontineService {
 
     private final TontineRepository tontineRepository;
+    private final UtilisateurRepository utilisateurRepository;
+    private final PasswordEncoder passwordEncoder;
 
     public List<TontineResponse> lister() {
         // La tontine est la racine du tenant : son identifiant est celui du contexte JWT.
@@ -30,7 +37,7 @@ public class TontineService {
     }
 
     @Transactional
-    public TontineResponse creer(TontineRequest requete) {
+    public TontineResponse creer(TontineCreationRequest requete) {
         verifierNomDisponible(requete.nom());
         var tontine = Tontine.builder()
                 .nom(requete.nom())
@@ -38,7 +45,20 @@ public class TontineService {
                 .dateCreation(requete.dateCreation())
                 .statut(requete.statut())
                 .build();
-        return versResponse(tontineRepository.save(tontine));
+        var tontineCreee = tontineRepository.save(tontine);
+        var administrateur = requete.administrateur();
+        var utilisateur = Utilisateur.builder()
+                .tontine(tontineCreee)
+                .email(administrateur.email())
+                .motDePasse(passwordEncoder.encode(administrateur.motDePasse()))
+                .nom(administrateur.nom())
+                .prenom(administrateur.prenom())
+                .telephone(administrateur.telephone())
+                .roles(java.util.Set.of(Role.ADMIN))
+                .actif(true)
+                .build();
+        utilisateurRepository.save(utilisateur);
+        return versResponse(tontineCreee);
     }
 
     @Transactional

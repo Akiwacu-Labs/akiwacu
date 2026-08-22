@@ -4,6 +4,8 @@ import bi.ac.upg.akiwacu.common.TenantContext;
 import bi.ac.upg.akiwacu.common.exception.RegleMetierException;
 import bi.ac.upg.akiwacu.common.exception.RessourceIntrouvableException;
 import bi.ac.upg.akiwacu.tontine.dto.TontineRequest;
+import bi.ac.upg.akiwacu.tontine.dto.TontineCreationRequest;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
@@ -29,6 +31,12 @@ class TontineServiceTest {
     @Mock
     private TontineRepository tontineRepository;
 
+    @Mock
+    private bi.ac.upg.akiwacu.utilisateur.UtilisateurRepository utilisateurRepository;
+
+    @Mock
+    private PasswordEncoder passwordEncoder;
+
     @InjectMocks
     private TontineService tontineService;
 
@@ -42,11 +50,19 @@ class TontineServiceTest {
                 StatutTontine.ACTIVE);
     }
 
+    private TontineCreationRequest uneRequeteCreation() {
+        return new TontineCreationRequest("Twiyungunganye", "Épargne solidaire",
+                LocalDate.of(2026, 8, 21), StatutTontine.ACTIVE,
+                new TontineCreationRequest.AdministrateurCreation(
+                        "admin@twiyungunganye.bi", "motdepasse-solide", "Ndayisenga", "Alice", null));
+    }
+
     @Test
     @DisplayName("cas nominal — crée une tontine avec les données fournies")
     void shouldCreateTontine() {
         // Arrange : le nom choisi n'est pas encore utilisé.
         when(tontineRepository.existsByNom("Twiyungunganye")).thenReturn(false);
+        when(passwordEncoder.encode("motdepasse-solide")).thenReturn("hash-motdepasse");
         when(tontineRepository.save(any(Tontine.class))).thenAnswer(invocation -> {
             var tontine = invocation.getArgument(0, Tontine.class);
             tontine.setId(7L);
@@ -54,7 +70,7 @@ class TontineServiceTest {
         });
 
         // Act
-        var reponse = tontineService.creer(uneRequete());
+        var reponse = tontineService.creer(uneRequeteCreation());
 
         // Assert : la réponse contient l'identifiant donné par la base et les champs créés.
         assertThat(reponse.id()).isEqualTo(7L);
@@ -62,6 +78,7 @@ class TontineServiceTest {
         ArgumentCaptor<Tontine> captor = ArgumentCaptor.forClass(Tontine.class);
         verify(tontineRepository).save(captor.capture());
         assertThat(captor.getValue().getStatut()).isEqualTo(StatutTontine.ACTIVE);
+        verify(utilisateurRepository).save(any(bi.ac.upg.akiwacu.utilisateur.Utilisateur.class));
     }
 
     @Test
@@ -70,7 +87,7 @@ class TontineServiceTest {
         // Un nom unique évite de confondre deux associations à la création.
         when(tontineRepository.existsByNom("Twiyungunganye")).thenReturn(true);
 
-        assertThatThrownBy(() -> tontineService.creer(uneRequete()))
+        assertThatThrownBy(() -> tontineService.creer(uneRequeteCreation()))
                 .isInstanceOf(RegleMetierException.class)
                 .hasMessageContaining("déjà le nom");
     }
