@@ -1,7 +1,6 @@
 package bi.ac.upg.akiwacu.caisse;
 
 import bi.ac.upg.akiwacu.caisse.dto.TransactionCaisseResponse;
-import bi.ac.upg.akiwacu.common.ControllerMethodSecurityTestConfig;
 import bi.ac.upg.akiwacu.common.GlobalExceptionHandler;
 import bi.ac.upg.akiwacu.common.exception.RegleMetierException;
 import bi.ac.upg.akiwacu.common.exception.RessourceIntrouvableException;
@@ -12,6 +11,8 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.Import;
+import org.springframework.boot.test.context.TestConfiguration;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.http.MediaType;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.web.servlet.MockMvc;
@@ -26,9 +27,14 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @WebMvcTest(TransactionCaisseController.class)
 @AutoConfigureMockMvc(addFilters = false)
-@Import({GlobalExceptionHandler.class, ControllerMethodSecurityTestConfig.class})
+@Import({GlobalExceptionHandler.class, TransactionCaisseControllerTest.SecuriteMethodeTestConfig.class})
 @DisplayName("TransactionCaisseController — API REST")
 class TransactionCaisseControllerTest {
+
+        @TestConfiguration
+        @EnableMethodSecurity
+        static class SecuriteMethodeTestConfig {
+        }
 
     @Autowired
     private MockMvc mockMvc;
