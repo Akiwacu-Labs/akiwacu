@@ -1,5 +1,6 @@
 package bi.ac.upg.akiwacu.dashboard;
 
+import bi.ac.upg.akiwacu.auth.JwtService;
 import bi.ac.upg.akiwacu.common.GlobalExceptionHandler;
 import bi.ac.upg.akiwacu.common.exception.RegleMetierException;
 import bi.ac.upg.akiwacu.common.exception.RessourceIntrouvableException;
@@ -38,6 +39,9 @@ class DashboardControllerTest {
 
     @MockBean
     private DashboardService service;
+
+    @MockBean
+    private JwtService jwtService;
 
     @Test
     @WithMockUser(roles = "GESTIONNAIRE")

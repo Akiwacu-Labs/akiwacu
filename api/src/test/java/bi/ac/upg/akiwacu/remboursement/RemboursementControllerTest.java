@@ -1,5 +1,6 @@
 package bi.ac.upg.akiwacu.remboursement;
 
+import bi.ac.upg.akiwacu.auth.JwtService;
 import bi.ac.upg.akiwacu.common.GlobalExceptionHandler;
 import bi.ac.upg.akiwacu.common.exception.RegleMetierException;
 import bi.ac.upg.akiwacu.common.exception.RessourceIntrouvableException;
@@ -41,6 +42,9 @@ class RemboursementControllerTest {
 
     @MockBean
     private RemboursementService service;
+
+        @MockBean
+        private JwtService jwtService;
 
     @Test
     @WithMockUser(roles = "TRESORIER")

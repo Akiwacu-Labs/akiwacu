@@ -1,5 +1,6 @@
 package bi.ac.upg.akiwacu.caisse;
 
+import bi.ac.upg.akiwacu.auth.JwtService;
 import bi.ac.upg.akiwacu.caisse.dto.TransactionCaisseResponse;
 import bi.ac.upg.akiwacu.common.GlobalExceptionHandler;
 import bi.ac.upg.akiwacu.common.exception.RegleMetierException;
@@ -41,6 +42,9 @@ class TransactionCaisseControllerTest {
 
     @MockBean
     private TransactionCaisseService service;
+
+        @MockBean
+        private JwtService jwtService;
 
     @Test
     @WithMockUser(roles = "TRESORIER")
