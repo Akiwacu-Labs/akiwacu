@@ -10,14 +10,17 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.List;
+
 /** REST uniquement : la création et R2/R6 vivent dans DemandePretService. */
 @RestController
 @RequestMapping("/api/demandes-pret")
-@PreAuthorize("hasRole('MEMBRE')")
 public class DemandePretController {
 
     private final DemandePretService demandePretService;
@@ -27,6 +30,7 @@ public class DemandePretController {
     }
 
     @PostMapping
+    @PreAuthorize("hasRole('MEMBRE')")
     @Operation(summary = "Soumettre une demande de prêt",
             description = "Soumet une demande sur le cycle actif et applique R2 et R6.")
     @ApiResponses({
@@ -40,5 +44,24 @@ public class DemandePretController {
             @Valid @RequestBody DemandePretRequest requete) {
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(demandePretService.demanderPret(requete));
+    }
+
+    @GetMapping
+    @PreAuthorize("hasAnyRole('MEMBRE', 'COMMISSAIRE', 'TRESORIER', 'GESTIONNAIRE', 'ADMIN')")
+    @Operation(summary = "Lister les demandes de prêt de la tontine courante")
+    public List<DemandePretResponse> lister() {
+        return demandePretService.listerDemandes();
+    }
+
+    @GetMapping("/{demandePretId}")
+    @PreAuthorize("hasAnyRole('MEMBRE', 'COMMISSAIRE', 'TRESORIER', 'GESTIONNAIRE', 'ADMIN')")
+    @Operation(summary = "Consulter une demande de prêt")
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Demande trouvée"),
+        @ApiResponse(responseCode = "403", description = "Demande hors tontine"),
+        @ApiResponse(responseCode = "404", description = "Demande introuvable")
+    })
+    public DemandePretResponse trouver(@PathVariable Long demandePretId) {
+        return demandePretService.trouverDemande(demandePretId);
     }
 }

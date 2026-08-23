@@ -4,8 +4,10 @@ import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
+import jakarta.validation.constraints.FutureOrPresent;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 
 /** Données nécessaires pour soumettre une demande dans la tontine courante. */
 public record DemandePretRequest(
@@ -20,6 +22,10 @@ public record DemandePretRequest(
         @NotNull(message = "la durée est obligatoire")
         @Positive(message = "la durée doit être positive")
         Integer dureeMois,
+
+        @NotNull(message = "l'échéance est obligatoire")
+        @FutureOrPresent(message = "l'échéance ne peut pas être dans le passé")
+        LocalDate dateEcheance,
 
         @NotBlank(message = "le motif est obligatoire")
         String motif) {

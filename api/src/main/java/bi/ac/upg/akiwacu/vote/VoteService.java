@@ -17,6 +17,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
+import java.util.List;
 
 /**
  * PROPRIÉTAIRE : Gloria.
@@ -64,6 +65,17 @@ public class VoteService {
         mettreAJourStatut(demande);
 
         return voteMapper.versReponse(voteEnregistre);
+    }
+
+    @Transactional(readOnly = true)
+    public List<VoteResponse> lister(Long demandePretId) {
+        Long tontineId = TenantContext.getTontineId();
+        DemandePret demande = demandePretRepository.findById(demandePretId)
+                .orElseThrow(() -> new RessourceIntrouvableException("Demande de prêt introuvable"));
+        verifierTontine(demande.getCycle().getTontine().getId(), tontineId);
+        return voteRepository.findByDemandePretId(demandePretId).stream()
+                .map(voteMapper::versReponse)
+                .toList();
     }
 
     private void mettreAJourStatut(DemandePret demande) {
