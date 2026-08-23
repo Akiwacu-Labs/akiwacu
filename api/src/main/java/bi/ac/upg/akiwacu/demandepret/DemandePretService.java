@@ -15,8 +15,10 @@ import bi.ac.upg.akiwacu.pret.PretService;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.security.access.AccessDeniedException;
 
 import java.time.LocalDate;
+import java.util.List;
 
 /**
  * PROPRIÉTAIRE : Gloria.
@@ -66,6 +68,7 @@ public class DemandePretService {
 
         pretService.verifierLimiteMontant(
                 membre.getId(), cycleActif.getId(), requete.montantDemande());
+        pretService.verifierEcheance(cycleActif, requete.dateEcheance());
 
         DemandePret demande = demandePretMapper.versEntite(requete);
         demande.setCycle(cycleActif);
@@ -74,5 +77,25 @@ public class DemandePretService {
         demande.setStatut(StatutDemandePret.SOUMISE);
 
         return demandePretMapper.versReponse(demandePretRepository.save(demande));
+    }
+
+    @Transactional(readOnly = true)
+    public List<DemandePretResponse> listerDemandes() {
+        Long tontineId = TenantContext.getTontineId();
+        return demandePretRepository.findAll().stream()
+                .filter(demande -> demande.getMembre().getTontine().getId().equals(tontineId))
+                .map(demandePretMapper::versReponse)
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public DemandePretResponse trouverDemande(Long demandePretId) {
+        Long tontineId = TenantContext.getTontineId();
+        DemandePret demande = demandePretRepository.findById(demandePretId)
+                .orElseThrow(() -> new RessourceIntrouvableException("Demande de prêt introuvable"));
+        if (!demande.getMembre().getTontine().getId().equals(tontineId)) {
+            throw new AccessDeniedException("Ressource hors de la tontine courante");
+        }
+        return demandePretMapper.versReponse(demande);
     }
 }
