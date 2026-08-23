@@ -55,7 +55,9 @@ class CotisationRepositoryDataJpaTest {
 
     private Tontine tontineA;
     private Cycle cycleA;
+    private Cycle cycleB;
     private Membre membreA;
+    private Membre membreB;
     private Utilisateur validateurA;
 
     @BeforeEach
@@ -72,9 +74,9 @@ class CotisationRepositoryDataJpaTest {
                 .build());
 
         cycleA = entityManager.merge(cycle(tontineA, "Cycle A"));
-        var cycleB = entityManager.merge(cycle(tontineB, "Cycle B"));
+        cycleB = entityManager.merge(cycle(tontineB, "Cycle B"));
         membreA = entityManager.merge(membre(tontineA, "Membre A"));
-        var membreB = entityManager.merge(membre(tontineB, "Membre B"));
+        membreB = entityManager.merge(membre(tontineB, "Membre B"));
         validateurA = entityManager.merge(Utilisateur.builder()
                 .tontine(tontineA)
                 .email("validateur-a@repository.test")
@@ -104,6 +106,20 @@ class CotisationRepositoryDataJpaTest {
         var total = cotisationRepository.sommeParMembreEtCycle(membreA.getId(), cycleA.getId());
 
         assertThat(total).isEqualByComparingTo("150000.00");
+    }
+
+    @Test
+    @DisplayName("R1 — masque les IDs d'une autre tontine et les relations croisées")
+    void shouldNotSelectOtherTenantIds() {
+        TenantContext.setTontineId(tontineA.getId());
+
+        var otherTenantTotal = cotisationRepository.sommeParMembreEtCycle(
+                membreB.getId(), cycleB.getId());
+        var mixedTenantTotal = cotisationRepository.sommeParMembreEtCycle(
+                membreB.getId(), cycleA.getId());
+
+        assertThat(otherTenantTotal).isEqualByComparingTo(BigDecimal.ZERO);
+        assertThat(mixedTenantTotal).isEqualByComparingTo(BigDecimal.ZERO);
     }
 
     @Test
