@@ -2,6 +2,7 @@ package bi.ac.upg.akiwacu.adhesion;
 
 import bi.ac.upg.akiwacu.adhesion.dto.AdhesionModificationRequest;
 import bi.ac.upg.akiwacu.adhesion.dto.AdhesionRequest;
+import bi.ac.upg.akiwacu.adhesion.dto.AdhesionResponse;
 import bi.ac.upg.akiwacu.adhesion.mapper.AdhesionMapper;
 import bi.ac.upg.akiwacu.common.TenantContext;
 import bi.ac.upg.akiwacu.common.exception.RegleMetierException;
@@ -21,6 +22,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.LocalDate;
 import java.util.Optional;
+import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -90,6 +92,17 @@ class AdhesionServiceTest {
     }
 
     @Test
+    void shouldListOnlyCurrentTenantAdhesions() {
+        TenantContext.setTontineId(7L);
+        Adhesion adhesion = Adhesion.builder().membre(unMembre(7L)).cycle(unCycle(7L))
+                .dateAdhesion(LocalDate.now()).statut(StatutAdhesion.ACTIVE).build();
+        adhesion.setId(9L);
+        when(adhesionRepository.findAllByMembreTontineId(7L)).thenReturn(List.of(adhesion));
+
+        assertThat(adhesionService.lister()).extracting(AdhesionResponse::id).containsExactly(9L);
+    }
+
+    @Test
     void shouldModifyAdhesionStatus() {
         TenantContext.setTontineId(7L);
         Adhesion adhesion = Adhesion.builder().membre(unMembre(7L)).cycle(unCycle(7L))
@@ -100,6 +113,35 @@ class AdhesionServiceTest {
                 new AdhesionModificationRequest(LocalDate.of(2026, 8, 22), StatutAdhesion.CLOTUREE));
 
         assertThat(response.statut()).isEqualTo(StatutAdhesion.CLOTUREE);
+    }
+
+    @Test
+    void shouldRejectModificationOfUnknownAdhesion() {
+        TenantContext.setTontineId(7L);
+        when(adhesionRepository.findByIdAndMembreTontineId(404L, 7L)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> adhesionService.modifier(404L,
+                new AdhesionModificationRequest(LocalDate.now(), StatutAdhesion.CLOTUREE)))
+                .isInstanceOf(RessourceIntrouvableException.class);
+    }
+
+    @Test
+    void shouldHideReadFromAnotherTenant() {
+        TenantContext.setTontineId(7L);
+        when(adhesionRepository.findByIdAndMembreTontineId(9L, 7L)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> adhesionService.recuperer(9L))
+                .isInstanceOf(RessourceIntrouvableException.class);
+    }
+
+    @Test
+    void shouldHideModificationFromAnotherTenant() {
+        TenantContext.setTontineId(7L);
+        when(adhesionRepository.findByIdAndMembreTontineId(9L, 7L)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> adhesionService.modifier(9L,
+                new AdhesionModificationRequest(LocalDate.now(), StatutAdhesion.CLOTUREE)))
+                .isInstanceOf(RessourceIntrouvableException.class);
     }
 
     private Membre unMembre(Long tontineId) {
