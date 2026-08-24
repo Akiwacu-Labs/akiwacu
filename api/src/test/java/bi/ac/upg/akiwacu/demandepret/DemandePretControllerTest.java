@@ -2,6 +2,7 @@ package bi.ac.upg.akiwacu.demandepret;
 
 import bi.ac.upg.akiwacu.auth.JwtService;
 import bi.ac.upg.akiwacu.common.exception.RegleMetierException;
+import org.springframework.security.access.AccessDeniedException;
 import bi.ac.upg.akiwacu.demandepret.dto.DemandePretRequest;
 import bi.ac.upg.akiwacu.demandepret.dto.DemandePretResponse;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -90,6 +91,19 @@ class DemandePretControllerTest {
                         .contentType("application/json")
                         .content(corpsValide()))
                 .andExpect(status().isConflict());
+    }
+
+    @Test
+    @WithMockUser(roles = "MEMBRE")
+    @DisplayName("cas d'accès — un membre ne peut pas demander pour un autre membre")
+    void shouldReturn403WhenMemberSubmitsForAnotherMember() throws Exception {
+        when(demandePretService.demanderPret(any()))
+                .thenThrow(new AccessDeniedException("Compte membre différent"));
+
+        mockMvc.perform(post("/api/demandes-pret")
+                        .contentType("application/json")
+                        .content(corpsValide()))
+                .andExpect(status().isForbidden());
     }
 
     @Test
