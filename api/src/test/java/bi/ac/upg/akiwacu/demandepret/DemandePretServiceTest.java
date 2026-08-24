@@ -24,7 +24,6 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.math.BigDecimal;
-import java.time.LocalDate;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -128,7 +127,7 @@ class DemandePretServiceTest {
     @DisplayName("Refuse un membre qui soumet pour le compte d'un autre membre")
     void shouldRejectRequestForAnotherMember() {
         var requete = new DemandePretRequest(7L, new BigDecimal("250000"), 3,
-                LocalDate.of(2026, 12, 31), "Achat de semences");
+                "Achat de semences");
         var cycle = Cycle.builder().dateFin(LocalDate.of(2026, 12, 31)).build();
         cycle.setId(10L);
         var tontine = Tontine.builder().build();
