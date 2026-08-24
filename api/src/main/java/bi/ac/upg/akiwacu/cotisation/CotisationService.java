@@ -68,8 +68,11 @@ public class CotisationService {
 
     @Transactional
     public CotisationResponse modifier(Long id, CotisationModificationRequest request) {
-        cycleGuardService.assertCycleActif(TenantContext.getTontineId());
+        Cycle cycleActif = cycleGuardService.assertCycleActif(TenantContext.getTontineId());
         Cotisation cotisation = trouver(id);
+        if (!cycleActif.getId().equals(cotisation.getCycle().getId())) {
+            throw new RegleMetierException("R2 : une cotisation d'un cycle inactif ne peut pas être modifiée");
+        }
         if (cotisation.estVerrouillee()) {
             throw new RegleMetierException("R8 : une cotisation ayant un reçu ne peut pas être modifiée");
         }
