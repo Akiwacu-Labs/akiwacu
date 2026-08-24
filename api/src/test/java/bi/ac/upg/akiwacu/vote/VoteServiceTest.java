@@ -2,6 +2,7 @@ package bi.ac.upg.akiwacu.vote;
 
 import bi.ac.upg.akiwacu.common.TenantContext;
 import bi.ac.upg.akiwacu.common.exception.RegleMetierException;
+import bi.ac.upg.akiwacu.common.exception.RessourceIntrouvableException;
 import bi.ac.upg.akiwacu.cycle.Cycle;
 import bi.ac.upg.akiwacu.demandepret.DemandePret;
 import bi.ac.upg.akiwacu.demandepret.DemandePretRepository;
@@ -104,7 +105,7 @@ class VoteServiceTest {
     }
 
     @Test
-    @DisplayName("R1 — refuse un commissaire d'une autre tontine")
+    @DisplayName("R1 — masque un commissaire d'une autre tontine")
     void shouldRejectVoteFromCommissionerOfAnotherTontine() {
         var demande = demande(20L, 1L);
         var commissaire = utilisateur(9L, 2L, "david@autre.bi");
@@ -114,7 +115,7 @@ class VoteServiceTest {
                 .thenReturn(Optional.of(commissaire));
 
         assertThatThrownBy(() -> voteService.voter(20L, new VoteRequest(SensVote.POUR, null)))
-                .isInstanceOf(org.springframework.security.access.AccessDeniedException.class);
+                .isInstanceOf(RessourceIntrouvableException.class);
 
         verify(voteRepository, never()).save(any());
     }

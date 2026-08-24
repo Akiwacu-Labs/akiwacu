@@ -93,7 +93,8 @@ public class VoteService {
 
     private void verifierTontine(Long ressourceTontineId, Long tontineCourante) {
         if (!ressourceTontineId.equals(tontineCourante)) {
-            throw new AccessDeniedException("Ressource hors de la tontine courante");
+            // R1 : ne pas révéler l'existence d'une ressource d'un autre tenant.
+            throw new RessourceIntrouvableException("Ressource introuvable");
         }
     }
 }
