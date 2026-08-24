@@ -19,6 +19,7 @@ import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
@@ -51,7 +52,8 @@ class DemandePretControllerTest {
 
     private String corpsValide() throws Exception {
         return objectMapper.writeValueAsString(
-                new DemandePretRequest(7L, new BigDecimal("250000"), 3, "Achat de semences"));
+                new DemandePretRequest(7L, new BigDecimal("250000"), 3,
+                        LocalDate.of(2026, 12, 31), "Achat de semences"));
     }
 
     @Test

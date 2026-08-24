@@ -11,14 +11,16 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.List;
+
 /** REST uniquement : l'identité et R4 vivent dans VoteService. */
 @RestController
 @RequestMapping("/api/demandes-pret/{demandePretId}/votes")
-@PreAuthorize("hasRole('COMMISSAIRE')")
 public class VoteController {
 
     private final VoteService voteService;
@@ -28,6 +30,7 @@ public class VoteController {
     }
 
     @PostMapping
+    @PreAuthorize("hasRole('COMMISSAIRE')")
     @Operation(summary = "Voter sur une demande de prêt",
             description = "Enregistre le vote du commissaire authentifié et applique R4.")
     @ApiResponses({
@@ -41,5 +44,12 @@ public class VoteController {
                                                @Valid @RequestBody VoteRequest requete) {
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(voteService.voter(demandePretId, requete));
+    }
+
+    @GetMapping
+    @PreAuthorize("hasAnyRole('MEMBRE', 'COMMISSAIRE', 'TRESORIER', 'GESTIONNAIRE', 'ADMIN')")
+    @Operation(summary = "Lister les votes d'une demande de prêt")
+    public List<VoteResponse> lister(@PathVariable Long demandePretId) {
+        return voteService.lister(demandePretId);
     }
 }

@@ -17,6 +17,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.util.List;
 
 /**
  * PROPRIÉTAIRE : Gloria.
@@ -66,6 +67,7 @@ public class DemandePretService {
 
         pretService.verifierLimiteMontant(
                 membre.getId(), cycleActif.getId(), requete.montantDemande());
+        pretService.verifierEcheance(cycleActif, requete.dateEcheance());
 
         DemandePret demande = demandePretMapper.versEntite(requete);
         demande.setCycle(cycleActif);
@@ -74,5 +76,24 @@ public class DemandePretService {
         demande.setStatut(StatutDemandePret.SOUMISE);
 
         return demandePretMapper.versReponse(demandePretRepository.save(demande));
+    }
+
+    @Transactional(readOnly = true)
+    public List<DemandePretResponse> listerDemandes() {
+        Long tontineId = TenantContext.getTontineId();
+        return demandePretRepository.findByMembreTontineId(tontineId).stream()
+                .map(demandePretMapper::versReponse)
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public DemandePretResponse trouverDemande(Long demandePretId) {
+        Long tontineId = TenantContext.getTontineId();
+        DemandePret demande = demandePretRepository.findById(demandePretId)
+                .orElseThrow(() -> new RessourceIntrouvableException("Demande de prêt introuvable"));
+        if (!demande.getMembre().getTontine().getId().equals(tontineId)) {
+            throw new RessourceIntrouvableException("Demande de prêt introuvable");
+        }
+        return demandePretMapper.versReponse(demande);
     }
 }

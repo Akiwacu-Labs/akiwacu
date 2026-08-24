@@ -3,6 +3,9 @@ package bi.ac.upg.akiwacu.pret;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
+import java.util.Optional;
+
 /**
  * PROPRIÉTAIRE : Gloria.
  * Vide volontairement — les méthodes de requête appartiennent au domaine
@@ -10,4 +13,8 @@ import org.springframework.stereotype.Repository;
  */
 @Repository
 public interface PretRepository extends JpaRepository<Pret, Long> {
+
+    Optional<Pret> findByDemandePretId(Long demandePretId);
+
+    List<Pret> findByMembreTontineId(Long tontineId);
 }
