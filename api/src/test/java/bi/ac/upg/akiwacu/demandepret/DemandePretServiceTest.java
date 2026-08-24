@@ -67,7 +67,8 @@ class DemandePretServiceTest {
     @Test
     @DisplayName("Crée une demande sur le cycle actif")
     void shouldCreateLoanRequestOnActiveCycle() {
-        var requete = new DemandePretRequest(7L, new BigDecimal("250000"), 3, "Achat de semences");
+        var requete = new DemandePretRequest(7L, new BigDecimal("250000"), 3,
+                LocalDate.of(2026, 12, 31), "Achat de semences");
         var cycle = Cycle.builder().build();
         cycle.setId(10L);
         var tontine = Tontine.builder().build();
@@ -101,7 +102,8 @@ class DemandePretServiceTest {
     @Test
     @DisplayName("Refuse la demande quand R6 est violée")
     void shouldRejectRequestWhenR6IsViolated() {
-        var requete = new DemandePretRequest(7L, new BigDecimal("300001"), 3, "Achat de semences");
+        var requete = new DemandePretRequest(7L, new BigDecimal("300001"), 3,
+                LocalDate.of(2026, 12, 31), "Achat de semences");
         var cycle = Cycle.builder().build();
         cycle.setId(10L);
         var tontine = Tontine.builder().build();
@@ -128,7 +130,7 @@ class DemandePretServiceTest {
     @DisplayName("Refuse un membre qui soumet pour le compte d'un autre membre")
     void shouldRejectRequestForAnotherMember() {
         var requete = new DemandePretRequest(7L, new BigDecimal("250000"), 3,
-                "Achat de semences");
+                LocalDate.of(2026, 12, 31), "Achat de semences");
         var cycle = Cycle.builder().dateFin(LocalDate.of(2026, 12, 31)).build();
         cycle.setId(10L);
         var tontine = Tontine.builder().build();
@@ -152,7 +154,8 @@ class DemandePretServiceTest {
     @Test
     @DisplayName("Lève une exception si le membre est introuvable")
     void shouldThrowWhenMemberNotFound() {
-        var requete = new DemandePretRequest(99L, new BigDecimal("100000"), 3, "Achat de semences");
+        var requete = new DemandePretRequest(99L, new BigDecimal("100000"), 3,
+                LocalDate.of(2026, 12, 31), "Achat de semences");
         when(cycleGuardService.assertCycleActif(1L)).thenReturn(Cycle.builder().build());
         when(membreRepository.findById(99L)).thenReturn(Optional.empty());
 
