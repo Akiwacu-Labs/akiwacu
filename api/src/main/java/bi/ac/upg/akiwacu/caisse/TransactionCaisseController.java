@@ -12,10 +12,12 @@ import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 @RestController
@@ -55,6 +57,18 @@ public class TransactionCaisseController {
         return service.lister();
     }
 
+    @GetMapping("/cycle/{cycleId}")
+    @Operation(summary = "Lister les transactions d'un cycle")
+    public List<TransactionCaisseResponse> listerParCycle(@PathVariable Long cycleId) {
+        return service.listerParCycle(cycleId);
+    }
+
+    @GetMapping("/solde")
+    @Operation(summary = "Consulter le solde de la caisse")
+    public BigDecimal solde() {
+        return service.solde();
+    }
+
     @GetMapping("/{id}")
         @Operation(summary = "Consulter une transaction de caisse")
         @ApiResponses({
@@ -64,6 +78,13 @@ public class TransactionCaisseController {
         })
     public TransactionCaisseResponse recuperer(@PathVariable Long id) {
         return service.recuperer(id);
+    }
+
+    @PutMapping("/{id}")
+    @Operation(summary = "Modifier une transaction de caisse")
+    public TransactionCaisseResponse modifier(@PathVariable Long id,
+                                               @Valid @RequestBody TransactionCaisseRequest request) {
+        return service.modifier(id, request);
     }
 
     @DeleteMapping("/{id}")

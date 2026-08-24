@@ -25,6 +25,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -127,5 +128,133 @@ class TransactionCaisseServiceTest {
                 .hasMessage("Cycle introuvable");
 
         verifyNoInteractions(cycleGuardService);
+    }
+
+    @Test
+    @DisplayName("liste les transactions du cycle courant")
+    void shouldListTransactionsForCurrentTenantCycle() {
+        Cycle cycle = cycle(3L, 1L);
+        TransactionCaisse transaction = transaction(10L, 1L, cycle, SensTransaction.ENTREE, "50000");
+        when(cycleRepository.findById(3L)).thenReturn(Optional.of(cycle));
+        when(repository.findByCycleId(3L)).thenReturn(List.of(transaction));
+
+        var responses = service.listerParCycle(3L);
+
+        assertThat(responses).hasSize(1);
+        assertThat(responses.getFirst().id()).isEqualTo(10L);
+    }
+
+    @Test
+    @DisplayName("refuse la liste d'un cycle d'une autre tontine")
+    void shouldRejectListingTransactionsForForeignCycle() {
+        when(cycleRepository.findById(3L)).thenReturn(Optional.of(cycle(3L, 2L)));
+
+        assertThatThrownBy(() -> service.listerParCycle(3L))
+                .isInstanceOf(RessourceIntrouvableException.class)
+                .hasMessage("Cycle introuvable");
+
+        verifyNoInteractions(repository);
+    }
+
+    @Test
+    @DisplayName("signale un cycle absent lors de la liste")
+    void shouldReportMissingCycleWhenListingTransactions() {
+        when(cycleRepository.findById(99L)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> service.listerParCycle(99L))
+                .isInstanceOf(RessourceIntrouvableException.class)
+                .hasMessage("Cycle introuvable");
+    }
+
+    @Test
+    @DisplayName("calcule le solde des entrées et sorties de la tontine")
+    void shouldCalculateCashBalanceForCurrentTenant() {
+        when(repository.findAll()).thenReturn(List.of(
+                transaction(1L, 1L, null, SensTransaction.ENTREE, "100000"),
+                transaction(2L, 1L, null, SensTransaction.SORTIE, "25000")));
+
+        assertThat(service.solde()).isEqualByComparingTo("75000");
+    }
+
+    @Test
+    @DisplayName("exclut les transactions d'une autre tontine du solde")
+    void shouldIgnoreForeignTenantTransactionsInCashBalance() {
+        when(repository.findAll()).thenReturn(List.of(
+                transaction(1L, 1L, null, SensTransaction.ENTREE, "100000"),
+                transaction(2L, 2L, null, SensTransaction.ENTREE, "900000")));
+
+        assertThat(service.solde()).isEqualByComparingTo("100000");
+    }
+
+    @Test
+    @DisplayName("renvoie zéro lorsqu'aucune transaction n'appartient à la tontine")
+    void shouldReturnZeroCashBalanceWithoutTenantTransactions() {
+        when(repository.findAll()).thenReturn(List.of());
+
+        assertThat(service.solde()).isEqualByComparingTo(BigDecimal.ZERO);
+    }
+
+    @Test
+    @DisplayName("modifie une transaction sur cycle actif")
+    void shouldUpdateTransactionOnActiveCycle() {
+        Cycle cycle = cycle(3L, 1L);
+        TransactionCaisse transaction = transaction(10L, 1L, cycle, SensTransaction.ENTREE, "10000");
+        when(repository.findById(10L)).thenReturn(Optional.of(transaction));
+        when(repository.save(transaction)).thenReturn(transaction);
+
+        var response = service.modifier(10L, request(SensTransaction.SORTIE, "25000"));
+
+        assertThat(response.sens()).isEqualTo(SensTransaction.SORTIE);
+        assertThat(response.montant()).isEqualByComparingTo("25000");
+        verify(cycleGuardService).assertCycleActif(1L);
+    }
+
+    @Test
+    @DisplayName("refuse la modification quand le cycle est inactif")
+    void shouldRejectTransactionUpdateOnInactiveCycle() {
+        TransactionCaisse transaction = transaction(10L, 1L, cycle(3L, 1L), SensTransaction.ENTREE, "10000");
+        when(repository.findById(10L)).thenReturn(Optional.of(transaction));
+        when(cycleGuardService.assertCycleActif(1L))
+                .thenThrow(new bi.ac.upg.akiwacu.common.exception.RegleMetierException("Cycle inactif"));
+
+        assertThatThrownBy(() -> service.modifier(10L, request(SensTransaction.SORTIE, "25000")))
+                .isInstanceOf(bi.ac.upg.akiwacu.common.exception.RegleMetierException.class);
+    }
+
+    @Test
+    @DisplayName("signale une transaction absente lors de la modification")
+    void shouldReportMissingTransactionWhenUpdating() {
+        when(repository.findById(99L)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> service.modifier(99L, request(SensTransaction.SORTIE, "25000")))
+                .isInstanceOf(RessourceIntrouvableException.class)
+                .hasMessage("Transaction de caisse introuvable");
+    }
+
+    private Cycle cycle(Long id, Long tontineId) {
+        Tontine tontine = Tontine.builder().nom("Tontine " + tontineId).build();
+        tontine.setId(tontineId);
+        Cycle cycle = Cycle.builder().tontine(tontine).statut(StatutCycle.OUVERT).build();
+        cycle.setId(id);
+        return cycle;
+    }
+
+    private TransactionCaisse transaction(Long id, Long tontineId, Cycle cycle,
+                                           SensTransaction sens, String montant) {
+        Tontine tontine = Tontine.builder().nom("Tontine " + tontineId).build();
+        tontine.setId(tontineId);
+        Utilisateur validateur = Utilisateur.builder().email("tresorier@akiwacu.test").build();
+        validateur.setId(7L);
+        TransactionCaisse transaction = TransactionCaisse.builder()
+                .tontine(tontine).cycle(cycle).sens(sens).montant(new BigDecimal(montant))
+                .motif("Test").dateTransaction(LocalDate.of(2026, 8, 24))
+                .validePar(validateur).build();
+        transaction.setId(id);
+        return transaction;
+    }
+
+    private TransactionCaisseRequest request(SensTransaction sens, String montant) {
+        return new TransactionCaisseRequest(3L, sens, new BigDecimal(montant), "Mise à jour",
+                LocalDate.of(2026, 8, 25), "MANUEL:1");
     }
 }
