@@ -80,10 +80,16 @@ public class CycleService {
                 && cible != StatutCycle.OUVERT) {
             throw new RegleMetierException("Transition de cycle non autorisée");
         }
+        if (precedent == StatutCycle.GELE && cible == StatutCycle.OUVERT
+                && cycleRepository.existsByTontineIdAndStatut(
+                TenantContext.getTontineId(), StatutCycle.OUVERT)) {
+            throw new RegleMetierException("Un seul cycle peut être ouvert par tontine");
+        }
         if (cible == StatutCycle.CLOTURE) {
             CycleActiveLoanPort port = activeLoanPort.getIfAvailable();
             if (port == null) {
-                throw new RegleMetierException("R4 : le contrôle des prêts actifs n'est pas encore disponible");
+                throw new RegleMetierException(
+                        "R3 : clôture indisponible tant que l'adaptateur des prêts actifs n'est pas branché");
             }
             if (port.existePretActif(cycle.getId(), TenantContext.getTontineId())) {
                 throw new RegleMetierException("R3 : impossible de clôturer un cycle avec des prêts actifs");
