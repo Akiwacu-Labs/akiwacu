@@ -70,6 +70,33 @@ public class RemboursementService {
         return mapper.versReponse(remboursement);
     }
 
+    @Transactional(readOnly = true)
+    public List<RemboursementResponse> listerParPret(Long pretId) {
+        Pret pret = trouverPret(pretId);
+        verifierTontine(pret);
+        return remboursementRepository.findByPretId(pretId).stream()
+                .map(mapper::versReponse)
+                .toList();
+    }
+
+    @Transactional
+    public RemboursementResponse modifier(Long id, RemboursementRequest request) {
+        Remboursement remboursement = trouver(id);
+        verifierTontine(remboursement.getPret());
+        verifierNonVerrouille(remboursement);
+        cycleGuardService.assertCycleActif(TenantContext.getTontineId());
+        if (!remboursement.getPret().getId().equals(request.pretId())) {
+            throw new RegleMetierException("Le prêt d'un remboursement ne peut pas être modifié");
+        }
+        if (request.montant().compareTo(remboursement.getPret().soldeRestant()
+                .add(remboursement.getMontant())) > 0) {
+            throw new RegleMetierException("Le remboursement dépasse le solde restant du prêt");
+        }
+        remboursement.setMontant(request.montant());
+        remboursement.setDateRemboursement(request.dateRemboursement());
+        return mapper.versReponse(remboursementRepository.save(remboursement));
+    }
+
     @Transactional
     public void supprimer(Long id) {
         Remboursement remboursement = trouver(id);

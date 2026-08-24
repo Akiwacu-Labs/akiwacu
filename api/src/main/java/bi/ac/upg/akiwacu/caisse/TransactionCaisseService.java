@@ -14,6 +14,7 @@ import bi.ac.upg.akiwacu.tontine.TontineRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 @Service
@@ -77,11 +78,49 @@ public class TransactionCaisseService {
                 .toList();
     }
 
+            @Transactional(readOnly = true)
+            public List<TransactionCaisseResponse> listerParCycle(Long cycleId) {
+            Cycle cycle = cycleRepository.findById(cycleId)
+                .filter(value -> value.getTontine().getId().equals(TenantContext.getTontineId()))
+                .orElseThrow(() -> new RessourceIntrouvableException("Cycle introuvable"));
+            return repository.findByCycleId(cycle.getId()).stream()
+                .filter(transaction -> transaction.getTontine().getId().equals(
+                    TenantContext.getTontineId()))
+                .map(mapper::versReponse)
+                .toList();
+            }
+
+            @Transactional(readOnly = true)
+            public BigDecimal solde() {
+            Long tontineId = TenantContext.getTontineId();
+            return repository.findAll().stream()
+                .filter(transaction -> transaction.getTontine().getId().equals(tontineId))
+                .map(transaction -> transaction.getSens() == SensTransaction.ENTREE
+                    ? transaction.getMontant()
+                    : transaction.getMontant().negate())
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+            }
+
     @Transactional(readOnly = true)
     public TransactionCaisseResponse recuperer(Long id) {
         TransactionCaisse transaction = trouver(id);
         verifierTontine(transaction);
         return mapper.versReponse(transaction);
+    }
+
+    @Transactional
+    public TransactionCaisseResponse modifier(Long id, TransactionCaisseRequest request) {
+        TransactionCaisse transaction = trouver(id);
+        verifierTontine(transaction);
+        if (transaction.getCycle() != null) {
+            cycleGuardService.assertCycleActif(TenantContext.getTontineId());
+        }
+        transaction.setSens(request.sens());
+        transaction.setMontant(request.montant());
+        transaction.setMotif(request.motif());
+        transaction.setDateTransaction(request.dateTransaction());
+        transaction.setReferenceOperation(request.referenceOperation());
+        return mapper.versReponse(repository.save(transaction));
     }
 
     @Transactional
