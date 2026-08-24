@@ -35,7 +35,7 @@ public class VoteController {
         @ApiResponse(responseCode = "400", description = "Vote invalide"),
         @ApiResponse(responseCode = "403", description = "Rôle insuffisant"),
         @ApiResponse(responseCode = "404", description = "Demande ou commissaire introuvable"),
-        @ApiResponse(responseCode = "409", description = "Commissaire déjà voté")
+        @ApiResponse(responseCode = "409", description = "Vote interdit après décision finale ou commissaire déjà voté")
     })
     public ResponseEntity<VoteResponse> voter(@PathVariable Long demandePretId,
                                                @Valid @RequestBody VoteRequest requete) {

@@ -47,6 +47,10 @@ public class VoteService {
         DemandePret demande = demandePretRepository.findById(demandePretId)
                 .orElseThrow(() -> new RessourceIntrouvableException("Demande de prêt introuvable"));
         verifierTontine(demande.getCycle().getTontine().getId(), tontineId);
+        if (demande.getStatut() != StatutDemandePret.SOUMISE) {
+            throw new RegleMetierException(
+                    "La demande de prêt a déjà fait l'objet d'une décision finale");
+        }
 
         Utilisateur commissaire = utilisateurCourant(tontineId);
         if (voteRepository.existsByDemandePretIdAndCommissaireId(demandePretId, commissaire.getId())) {

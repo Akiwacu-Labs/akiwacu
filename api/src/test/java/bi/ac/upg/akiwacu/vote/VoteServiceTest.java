@@ -80,6 +80,34 @@ class VoteServiceTest {
     }
 
     @Test
+    @DisplayName("Refuse un vote après approbation de la demande")
+    void shouldRejectVoteAfterRequestWasApproved() {
+        var demande = demande(20L, 1L);
+        demande.setStatut(StatutDemandePret.APPROUVEE);
+        when(demandePretRepository.findById(20L)).thenReturn(Optional.of(demande));
+
+        assertThatThrownBy(() -> voteService.voter(20L, new VoteRequest(SensVote.POUR, null)))
+                .isInstanceOf(RegleMetierException.class)
+                .hasMessageContaining("décision finale");
+
+        verify(voteRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("Refuse un vote après rejet de la demande")
+    void shouldRejectVoteAfterRequestWasRejected() {
+        var demande = demande(20L, 1L);
+        demande.setStatut(StatutDemandePret.REJETEE);
+        when(demandePretRepository.findById(20L)).thenReturn(Optional.of(demande));
+
+        assertThatThrownBy(() -> voteService.voter(20L, new VoteRequest(SensVote.CONTRE, null)))
+                .isInstanceOf(RegleMetierException.class)
+                .hasMessageContaining("décision finale");
+
+        verify(voteRepository, never()).save(any());
+    }
+
+    @Test
     @DisplayName("R4 — approuve la demande au second vote favorable distinct")
     void shouldApproveRequestOnSecondDistinctFavorableVote() {
         var demande = demande(20L, 1L);
