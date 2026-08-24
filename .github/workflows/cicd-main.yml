@@ -134,6 +134,12 @@ jobs:
         if: vars.SONAR_GATE == 'true'
         uses: SonarSource/sonarqube-quality-gate-action@master
         timeout-minutes: 5
+        with:
+          # sonar-maven-plugin écrit report-task.txt dans target/sonar/ par défaut
+          # (pas .scannerwork/, c'est un défaut du scanner CLI autonome). L'action
+          # `uses:` n'hérite pas de defaults.run.working-directory: api du job --
+          # ce chemin est donc relatif à la racine du dépôt, pas à api/.
+          scanMetadataReportFile: api/target/sonar/report-task.txt
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
