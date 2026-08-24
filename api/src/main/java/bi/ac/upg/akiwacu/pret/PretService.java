@@ -125,8 +125,7 @@ public class PretService {
     @Transactional(readOnly = true)
     public List<PretResponse> listerPrets() {
         Long tontineId = TenantContext.getTontineId();
-        return pretRepository.findAll().stream()
-                .filter(pret -> pret.getMembre().getTontine().getId().equals(tontineId))
+        return pretRepository.findByMembreTontineId(tontineId).stream()
                 .map(this::toResponse)
                 .toList();
     }
@@ -163,8 +162,8 @@ public class PretService {
 
     private void verifierTenant(Long ressourceTontineId, Long tontineId) {
         if (!ressourceTontineId.equals(tontineId)) {
-            throw new org.springframework.security.access.AccessDeniedException(
-                    "Ressource hors de la tontine courante");
+            // R1 : une ressource d'un autre tenant doit être indistinguable d'une absence.
+            throw new RessourceIntrouvableException("Prêt introuvable");
         }
     }
 }

@@ -15,7 +15,6 @@ import bi.ac.upg.akiwacu.pret.PretService;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.security.access.AccessDeniedException;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -82,8 +81,7 @@ public class DemandePretService {
     @Transactional(readOnly = true)
     public List<DemandePretResponse> listerDemandes() {
         Long tontineId = TenantContext.getTontineId();
-        return demandePretRepository.findAll().stream()
-                .filter(demande -> demande.getMembre().getTontine().getId().equals(tontineId))
+        return demandePretRepository.findByMembreTontineId(tontineId).stream()
                 .map(demandePretMapper::versReponse)
                 .toList();
     }
@@ -94,7 +92,7 @@ public class DemandePretService {
         DemandePret demande = demandePretRepository.findById(demandePretId)
                 .orElseThrow(() -> new RessourceIntrouvableException("Demande de prêt introuvable"));
         if (!demande.getMembre().getTontine().getId().equals(tontineId)) {
-            throw new AccessDeniedException("Ressource hors de la tontine courante");
+            throw new RessourceIntrouvableException("Demande de prêt introuvable");
         }
         return demandePretMapper.versReponse(demande);
     }

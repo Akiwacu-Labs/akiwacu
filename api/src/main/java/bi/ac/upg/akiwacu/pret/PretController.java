@@ -56,8 +56,7 @@ public class PretController {
     @Operation(summary = "Consulter le détail et l'échéance d'un prêt")
     @ApiResponses({
         @ApiResponse(responseCode = "200", description = "Prêt trouvé"),
-        @ApiResponse(responseCode = "403", description = "Prêt hors tontine"),
-        @ApiResponse(responseCode = "404", description = "Prêt introuvable")
+        @ApiResponse(responseCode = "404", description = "Prêt introuvable ou hors tontine")
     })
     public PretResponse trouver(@PathVariable Long pretId) {
         return pretService.trouverPret(pretId);

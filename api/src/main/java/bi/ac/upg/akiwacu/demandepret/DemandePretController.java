@@ -58,8 +58,7 @@ public class DemandePretController {
     @Operation(summary = "Consulter une demande de prêt")
     @ApiResponses({
         @ApiResponse(responseCode = "200", description = "Demande trouvée"),
-        @ApiResponse(responseCode = "403", description = "Demande hors tontine"),
-        @ApiResponse(responseCode = "404", description = "Demande introuvable")
+        @ApiResponse(responseCode = "404", description = "Demande introuvable ou hors tontine")
     })
     public DemandePretResponse trouver(@PathVariable Long demandePretId) {
         return demandePretService.trouverDemande(demandePretId);
