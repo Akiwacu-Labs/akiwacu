@@ -149,7 +149,10 @@ class VoteServiceTest {
     }
 
     private DemandePret demande(Long id, Long tontineId) {
-        var demande = DemandePret.builder().cycle(cycle(tontineId)).build();
+        var demande = DemandePret.builder()
+                .cycle(cycle(tontineId))
+                .statut(StatutDemandePret.SOUMISE)
+                .build();
         demande.setId(id);
         return demande;
     }
