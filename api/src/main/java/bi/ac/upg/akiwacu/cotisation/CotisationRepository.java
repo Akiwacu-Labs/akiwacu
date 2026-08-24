@@ -6,6 +6,8 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
 import java.math.BigDecimal;
+import java.util.List;
+import java.util.Optional;
 
 /**
  * PROPRIÉTAIRE : Benitha.
@@ -14,6 +16,10 @@ import java.math.BigDecimal;
  */
 @Repository
 public interface CotisationRepository extends JpaRepository<Cotisation, Long> {
+
+    List<Cotisation> findAllByMembreTontineId(Long tontineId);
+
+    Optional<Cotisation> findByIdAndMembreTontineId(Long id, Long tontineId);
 
     /**
      * D-27 / R6 — total des cotisations d'un membre sur un cycle donné.
