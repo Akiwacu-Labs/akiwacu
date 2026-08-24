@@ -1,6 +1,7 @@
 package bi.ac.upg.akiwacu.demandepret;
 
 import bi.ac.upg.akiwacu.common.TenantContext;
+import bi.ac.upg.akiwacu.common.ValidateurCourantService;
 import bi.ac.upg.akiwacu.common.exception.RessourceIntrouvableException;
 import bi.ac.upg.akiwacu.cotisation.CotisationRepository;
 import bi.ac.upg.akiwacu.cycle.Cycle;
@@ -11,6 +12,7 @@ import bi.ac.upg.akiwacu.demandepret.mapper.DemandePretMapper;
 import bi.ac.upg.akiwacu.membre.Membre;
 import bi.ac.upg.akiwacu.membre.MembreRepository;
 import bi.ac.upg.akiwacu.pret.PretService;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -29,17 +31,20 @@ public class DemandePretService {
     private final CycleGuardService cycleGuardService;
     private final PretService pretService;
     private final DemandePretMapper demandePretMapper;
+    private final ValidateurCourantService validateurCourantService;
 
     public DemandePretService(DemandePretRepository demandePretRepository,
                               MembreRepository membreRepository,
                               CycleGuardService cycleGuardService,
                               PretService pretService,
-                              DemandePretMapper demandePretMapper) {
+                              DemandePretMapper demandePretMapper,
+                              ValidateurCourantService validateurCourantService) {
         this.demandePretRepository = demandePretRepository;
         this.membreRepository = membreRepository;
         this.cycleGuardService = cycleGuardService;
         this.pretService = pretService;
         this.demandePretMapper = demandePretMapper;
+        this.validateurCourantService = validateurCourantService;
     }
 
     @Transactional
@@ -51,6 +56,12 @@ public class DemandePretService {
 
         if (!membre.getTontine().getId().equals(tontineId)) {
             throw new RessourceIntrouvableException("Membre introuvable");
+        }
+        var utilisateurCourant = validateurCourantService.obtenir();
+        if (membre.getUtilisateur() == null
+                || !membre.getUtilisateur().getId().equals(utilisateurCourant.getId())) {
+            throw new AccessDeniedException(
+                    "Un membre ne peut soumettre une demande que pour son propre compte");
         }
 
         pretService.verifierLimiteMontant(
