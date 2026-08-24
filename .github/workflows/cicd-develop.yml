@@ -90,7 +90,12 @@ jobs:
       #   gh variable set COVERAGE_GATE --body true
       - name: Vérification du seuil de couverture
         if: vars.COVERAGE_GATE == 'true'
-        run: ./mvnw -B jacoco:check
+        # @check cible directement l'exécution nommée « check » du pom.xml :
+        # ses <rules> (seuil de couverture) sont déclarées dans cette exécution,
+        # pas au niveau du plugin. Un `jacoco:check` nu lance l'exécution
+        # « default-cli » à la place, qui ne les voit pas -> échec systématique
+        # "parameters 'rules' ... missing or invalid", quelle que soit la couverture réelle.
+        run: ./mvnw -B jacoco:check@check
 
       # PAS actions/upload-artifact : le runner purge _actions/ à CHAQUE job,
       # donc l'action serait retéléchargée (2,2 Mo) à chaque exécution, avec un
