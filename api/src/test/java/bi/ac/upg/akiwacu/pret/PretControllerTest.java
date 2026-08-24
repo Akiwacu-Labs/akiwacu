@@ -131,13 +131,12 @@ class PretControllerTest {
 
     @Test
     @WithMockUser(roles = "MEMBRE")
-    void shouldReturn403WhenLoanBelongsToAnotherTenant() throws Exception {
+    void shouldReturn404WhenLoanBelongsToAnotherTenant() throws Exception {
         when(pretService.trouverPret(99L))
-                .thenThrow(new org.springframework.security.access.AccessDeniedException(
-                        "Ressource hors de la tontine courante"));
+                .thenThrow(new RessourceIntrouvableException("Prêt introuvable"));
 
         mockMvc.perform(get("/api/prets/99"))
-                .andExpect(status().isForbidden());
+                .andExpect(status().isNotFound());
     }
 
     @Test
