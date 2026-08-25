@@ -713,7 +713,12 @@ c'est le filet prévu en amont (SonarLint), pas la porte elle-même.
   l'UI Sonar (filtre New Code) : corrige ce qui est réel (Blocker/Critical),
   résout le reste avec une justification écrite, jamais en silence — voir
   issues #43–#47.
-- `SONAR_GATE` repasse à `true` une fois le tri fait, avant l'entrée en Phase D.
+- `SONAR_GATE` repasse à `true` **sous 72 heures (au plus tard le 28 août 2026)**,
+  pas « avant la Phase D ». L'énoncé (§11.2) est explicite et sans exception :
+  « tout échec du Quality Gate SonarQube... devra interrompre immédiatement le
+  pipeline » — ce désarmement est une déviation assumée et documentée d'une
+  exigence notée, pas une simplification opérationnelle anodine. Elle doit
+  rester courte pour rester défendable à l'oral.
 - Si `SONAR_GATE` doit être redésarmé une deuxième fois pour la même raison, ce
   n'est plus un incident isolé — le réévaluer sérieusement à ce moment-là plutôt
   que de le redésarmer par réflexe.
