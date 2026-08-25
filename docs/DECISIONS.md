@@ -685,6 +685,41 @@ par cookie/session, cette décision doit être rouverte.
 
 ---
 
+### D-37 — `SONAR_GATE` désarmé temporairement : dette de code neuf découverte, pas ignorée
+
+**Décidé par Andy, chef de projet et responsable sécurité, le 25 août 2026 :**
+`SONAR_GATE` repassé à `false` (`gh variable set SONAR_GATE --body false`), le
+jour même où D-36 le déclarait armé « sans exception ». Cette décision ne rouvre
+pas D-36 — le finding CSRF reste résolu Won't Fix, sans lien avec ce qui suit.
+
+**Constat :** première évaluation réelle du Quality Gate sur le code neuf
+(période « Since August 20, 2026 », conforme à D-11) : 69 nouveaux problèmes et
+une couverture de code neuf à 72,8 % contre 80 % exigé, sur 871 lignes à couvrir.
+D-11 prévoyait exactement ce risque et sa parade — « SonarLint en mode connecté
+distribué à toute l'équipe dès le D3 » — jamais faite (AKW-260 encore À faire).
+Sans retour en direct dans l'IDE, les problèmes se sont accumulés en silence sur
+9 PR et se découvrent d'un coup, au pire moment : quatre personnes attendent que
+#48 merge pour pousser leur propre travail.
+
+**Motif :** bloquer aujourd'hui immobiliserait toute l'équipe sur une dette qui
+n'est pas nouvelle — elle vient seulement d'être rendue visible. Le choix de D-11
+(porte sur le code neuf, pas sur tout le dépôt) reste le bon ; ce qui a manqué,
+c'est le filet prévu en amont (SonarLint), pas la porte elle-même.
+
+**Conséquence :**
+- SonarLint en mode connecté distribué à l'équipe cette semaine — clôt enfin
+  AKW-260, condition pour ne pas revivre cet épisode.
+- Chaque propriétaire de domaine trie les problèmes de son propre package dans
+  l'UI Sonar (filtre New Code) : corrige ce qui est réel (Blocker/Critical),
+  résout le reste avec une justification écrite, jamais en silence — voir
+  issues #43–#47.
+- `SONAR_GATE` repasse à `true` une fois le tri fait, avant l'entrée en Phase D.
+- Si `SONAR_GATE` doit être redésarmé une deuxième fois pour la même raison, ce
+  n'est plus un incident isolé — le réévaluer sérieusement à ce moment-là plutôt
+  que de le redésarmer par réflexe.
+
+---
+
 ## Ce qui a été délibérément écarté
 
 | Écarté | Motif |
