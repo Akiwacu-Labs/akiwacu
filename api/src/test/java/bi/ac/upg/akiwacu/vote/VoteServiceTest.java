@@ -13,6 +13,8 @@ import bi.ac.upg.akiwacu.utilisateur.UtilisateurRepository;
 import bi.ac.upg.akiwacu.vote.dto.VoteRequest;
 import bi.ac.upg.akiwacu.vote.dto.VoteResponse;
 import bi.ac.upg.akiwacu.vote.mapper.VoteCommissaireMapper;
+import io.micrometer.core.instrument.Counter;
+import io.micrometer.core.instrument.MeterRegistry;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -46,6 +48,10 @@ class VoteServiceTest {
     private UtilisateurRepository utilisateurRepository;
     @Mock
     private VoteCommissaireMapper voteMapper;
+    @Mock
+    private MeterRegistry meterRegistry;
+    @Mock
+    private Counter rejectedLoansCounter;
 
     @InjectMocks
     private VoteService voteService;
@@ -130,6 +136,33 @@ class VoteServiceTest {
         assertThat(resultat).isEqualTo(reponse);
         assertThat(demande.getStatut()).isEqualTo(StatutDemandePret.APPROUVEE);
         verify(demandePretRepository).save(demande);
+    }
+
+    @Test
+    @DisplayName("R4 â€” publie un Counter des prÃªts refusÃ©s avec le motif")
+    void shouldCountRejectedRequestByReason() {
+        var demande = demande(20L, 1L);
+        demande.setMotif("TrÃ©sorerie");
+        var commissaire = utilisateur(8L, 1L, "bob@akiwacu.bi");
+        authentifier("bob@akiwacu.bi");
+        var vote = VoteCommissaire.builder().demandePret(demande).commissaire(commissaire)
+                .sens(SensVote.CONTRE).dateVote(Instant.now()).build();
+        var reponse = new VoteResponse(31L, 20L, 8L, SensVote.CONTRE, null, vote.getDateVote());
+        when(demandePretRepository.findById(20L)).thenReturn(Optional.of(demande));
+        when(utilisateurRepository.findByEmail("bob@akiwacu.bi"))
+                .thenReturn(Optional.of(commissaire));
+        when(voteRepository.existsByDemandePretIdAndCommissaireId(20L, 8L)).thenReturn(false);
+        when(voteRepository.save(any(VoteCommissaire.class))).thenReturn(vote);
+        when(voteRepository.countByDemandePretIdAndSens(20L, SensVote.POUR)).thenReturn(0L);
+        when(voteRepository.countByDemandePretIdAndSens(20L, SensVote.CONTRE)).thenReturn(2L);
+        when(voteMapper.versReponse(vote)).thenReturn(reponse);
+        when(meterRegistry.counter("akiwacu.prets.refuses.total", "motif", "TrÃ©sorerie"))
+                .thenReturn(rejectedLoansCounter);
+
+        voteService.voter(20L, new VoteRequest(SensVote.CONTRE, null));
+
+        verify(meterRegistry).counter("akiwacu.prets.refuses.total", "motif", "TrÃ©sorerie");
+        verify(rejectedLoansCounter).increment();
     }
 
     @Test
