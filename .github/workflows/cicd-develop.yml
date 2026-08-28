@@ -237,8 +237,20 @@ jobs:
 
       - name: Publication de l'image sur GHCR
         run: |
-          docker push ${IMAGE}:dev-${{ needs.build-test-quality.outputs.version }}
-          docker push ${IMAGE}:develop
+          for attempt in 1 2 3; do
+            if docker push ${IMAGE}:dev-${{ needs.build-test-quality.outputs.version }} \
+              && docker push ${IMAGE}:develop; then
+              echo "Publication GHCR réussie à la tentative ${attempt}."
+              exit 0
+            fi
+            if [ "${attempt}" -lt 3 ]; then
+              delay=$((attempt * 5))
+              echo "Publication GHCR échouée (tentative ${attempt}/3), nouvelle tentative dans ${delay}s..."
+              sleep "${delay}"
+            fi
+          done
+          echo "::error::Publication GHCR échouée après 3 tentatives."
+          exit 1
 
   # ─────────────────────────────────────────────────────────────
   # 2 bis. Image du client React
