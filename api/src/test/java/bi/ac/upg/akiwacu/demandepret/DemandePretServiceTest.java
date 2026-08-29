@@ -152,6 +152,23 @@ class DemandePretServiceTest {
     }
 
     @Test
+    @DisplayName("R1 — masque une demande d'une autre tontine")
+    void shouldNotAccessDataFromAnotherTontine() {
+        var demande = DemandePret.builder()
+                .cycle(Cycle.builder().tontine(tontine(2L)).build())
+                .membre(Membre.builder().tontine(tontine(2L)).build())
+                .build();
+        demande.setId(20L);
+        when(demandePretRepository.findById(20L)).thenReturn(Optional.of(demande));
+
+        assertThatThrownBy(() -> demandePretService.trouverDemande(20L))
+                .isInstanceOf(RessourceIntrouvableException.class)
+                .hasMessageContaining("introuvable");
+
+        verify(demandePretMapper, never()).versReponse(any());
+    }
+
+    @Test
     @DisplayName("Lève une exception si le membre est introuvable")
     void shouldThrowWhenMemberNotFound() {
         var requete = new DemandePretRequest(99L, new BigDecimal("100000"), 3,
@@ -174,5 +191,11 @@ class DemandePretServiceTest {
                 .build();
         utilisateur.setId(id);
         return utilisateur;
+    }
+
+    private Tontine tontine(Long id) {
+        var tontine = Tontine.builder().build();
+        tontine.setId(id);
+        return tontine;
     }
 }
