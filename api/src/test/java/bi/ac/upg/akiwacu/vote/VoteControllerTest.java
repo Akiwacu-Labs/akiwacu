@@ -22,6 +22,7 @@ import java.time.Instant;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -98,5 +99,29 @@ class VoteControllerTest {
                         .contentType("application/json")
                         .content("{\"commentaire\":\"Projet viable\"}"))
                 .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    @WithMockUser(roles = "MEMBRE")
+    @DisplayName("cas nominal — membre consulte un vote, renvoie 200")
+    void shouldReturn200WhenVoteIsFound() throws Exception {
+        when(voteService.trouver(20L, 31L))
+                .thenReturn(new VoteResponse(31L, 20L, 8L, SensVote.POUR, null,
+                        Instant.parse("2026-08-22T20:00:00Z")));
+
+        mockMvc.perform(get("/api/demandes-pret/20/votes/31"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(31));
+    }
+
+    @Test
+    @WithMockUser(roles = "MEMBRE")
+    @DisplayName("cas d'erreur — vote introuvable, renvoie 404")
+    void shouldReturn404WhenVoteIsMissing() throws Exception {
+        when(voteService.trouver(20L, 31L))
+                .thenThrow(new bi.ac.upg.akiwacu.common.exception.RessourceIntrouvableException("Vote introuvable"));
+
+        mockMvc.perform(get("/api/demandes-pret/20/votes/31"))
+                .andExpect(status().isNotFound());
     }
 }
