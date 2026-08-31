@@ -90,7 +90,9 @@ jobs:
       #   gh variable set COVERAGE_GATE --body true
       - name: Vérification du seuil de couverture
         if: vars.COVERAGE_GATE == 'true'
-        run: ./mvnw -B jacoco:check
+        # Cible l'exécution nommée qui contient les règles de couverture dans pom.xml.
+        # L'appel nu utilise default-cli, sans <rules>, et échoue systématiquement.
+        run: ./mvnw -B jacoco:check@check
 
       # PAS actions/upload-artifact : le runner purge _actions/ à CHAQUE job,
       # donc l'action serait retéléchargée (2,2 Mo) à chaque exécution, avec un
