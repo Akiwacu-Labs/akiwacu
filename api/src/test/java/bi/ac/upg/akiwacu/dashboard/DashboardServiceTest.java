@@ -40,9 +40,11 @@ class DashboardServiceTest {
     private TransactionCaisseRepository transactionRepository;
 
     private DashboardService service;
+    private SimpleMeterRegistry meterRegistry;
 
     @BeforeEach
     void setUp() {
+        meterRegistry = new SimpleMeterRegistry();
         service = new DashboardService(
                 membreRepository,
                 cotisationRepository,
@@ -51,7 +53,7 @@ class DashboardServiceTest {
                 pretRepository,
                 remboursementRepository,
                 transactionRepository,
-                new SimpleMeterRegistry());
+                meterRegistry);
         TenantContext.setTontineId(1L);
         when(membreRepository.findAll()).thenReturn(java.util.List.of());
         when(cotisationRepository.findAll()).thenReturn(java.util.List.of());
@@ -77,5 +79,6 @@ class DashboardServiceTest {
         assertThat(response.pretsEnCours()).isZero();
         assertThat(response.remboursementsTotal()).isZero();
         assertThat(response.soldeCaisse()).isZero();
+        assertThat(meterRegistry.find("akiwacu.prets.refuses.total").meter()).isNull();
     }
 }

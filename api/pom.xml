@@ -253,6 +253,8 @@
                  l'énoncé §11.1 exige explicitement des tests d'entités métier. -->
             <exclude>**/AkiwacuApplication.class</exclude>
             <exclude>**/dto/**</exclude>
+            <!-- MapStruct generated implementations contain no business logic. -->
+            <exclude>**/mapper/*MapperImpl.class</exclude>
           </excludes>
         </configuration>
       </plugin>

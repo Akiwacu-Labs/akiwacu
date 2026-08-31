@@ -92,10 +92,6 @@ public class DashboardService {
                 .filter(demande -> demande.getStatut() == StatutDemandePret.DEBLOQUEE
                         || demande.getStatut() == StatutDemandePret.APPROUVEE)
                 .count();
-        long pretsRefuses = demandePretRepository.findAll().stream()
-                .filter(demande -> demande.getCycle().getTontine().getId().equals(tontineId))
-                .filter(demande -> demande.getStatut() == StatutDemandePret.REJETEE)
-                .count();
         long cyclesActifs = cycleRepository.findAll().stream()
                 .filter(cycle -> cycle.getTontine().getId().equals(tontineId))
                 .filter(cycle -> cycle.getStatut() == StatutCycle.OUVERT)
@@ -104,13 +100,13 @@ public class DashboardService {
         DashboardResponse response = new DashboardResponse(
                 membresActifs, cotisations, pretsEnCours, remboursements, soldeCaisse);
         mettreAJourMetriques(tontineId, response, cotisationsEnregistrees,
-                pretsAccordes, pretsRefuses, cyclesActifs);
+                pretsAccordes, cyclesActifs);
         return response;
     }
 
     private void mettreAJourMetriques(Long tontineId, DashboardResponse response,
                                       long cotisationsEnregistrees, long pretsAccordes,
-                                      long pretsRefuses, long cyclesActifs) {
+                                      long cyclesActifs) {
         mettreAJour("akiwacu.membres.total", tontineId, (double) response.membresActifs());
         mettreAJour("akiwacu.cotisations.montant.total", tontineId,
                 response.cotisationsTotal().doubleValue());
@@ -121,7 +117,6 @@ public class DashboardService {
         mettreAJour("akiwacu.solde.caisse", tontineId, response.soldeCaisse().doubleValue());
         mettreAJour("akiwacu.cotisations.enregistrees.total", tontineId, cotisationsEnregistrees);
         mettreAJour("akiwacu.prets.accordes.total", tontineId, pretsAccordes);
-        mettreAJour("akiwacu.prets.refuses.total", tontineId, pretsRefuses);
         mettreAJour("akiwacu.cycles.actifs", tontineId, cyclesActifs);
     }
 
