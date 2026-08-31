@@ -82,30 +82,30 @@ git checkout -b feat/<domaine>-<slug>-AKW-<numéro>
 claude
 ```
 
-Colle ceci, en remplaçant les deux `<…>` :
+Utiliser le prompt suivant en remplaçant les deux `<…>` par les informations du
+ticket et de la fiche de rôle concernée :
 
 > Lis dans cet ordre : `CLAUDE.md`, `docs/MODELE-DE-DONNEES.md`,
 > `docs/MATRICE-REGLES-METIER.md`, `docs/DECISIONS.md`, et
-> `docs/roles/M<n>-role.md` — c'est ma fiche de rôle.
+> `docs/roles/M<n>-role.md` — c'est la fiche de rôle concernée.
 >
-> Je travaille sur le ticket **AKW-\<numéro\>** : \<résumé du ticket\>.
+> Le travail porte sur le ticket **AKW-\<numéro\>** : \<résumé du ticket\>.
 >
 > Contraintes que tu ne franchis pas :
-> — je n'écris QUE dans mes packages, ceux listés dans ma fiche de rôle ;
-> — mes migrations Flyway sont numérotées dans MA plage réservée, voir
+> — écrire uniquement dans les packages attribués, listés dans la fiche de rôle ;
+> — les migrations Flyway sont numérotées dans la plage réservée correspondante, voir
 >   `docs/PREMIERE-PR.md` ;
 > — les règles métier vont dans le **service**, jamais dans le contrôleur ;
 > — le modèle de données fait autorité : si un champ manque, dis-le, ne l'invente pas ;
 > — les noms de tests des règles R1 à R8 sont imposés, ne les reformule pas.
 >
-> Commence par me proposer un plan en 5 lignes. Je valide avant que tu écrives du code.
+> Commencer par proposer un plan en 5 lignes et attendre sa validation avant d'écrire du code.
 >
 > Vérifie avec `cd api && ./mvnw clean verify`, puis `docker compose up -d db` et
 > `./mvnw spring-boot:run` pour confirmer que l'application démarre.
 
 Le « plan en 5 lignes d'abord » est la partie qui compte. Un agent qui écrit
-400 lignes avant que tu aies regardé produit du code que tu ne sauras pas défendre
-le 14.
+400 lignes avant la revue du plan produit du code difficile à défendre le 14.
 
 ---
 
