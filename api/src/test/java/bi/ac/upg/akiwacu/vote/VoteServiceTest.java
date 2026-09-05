@@ -148,6 +148,48 @@ class VoteServiceTest {
         verify(voteRepository, never()).save(any());
     }
 
+    @Test
+    @DisplayName("cas nominal — retrouve un vote de la demande")
+    void shouldFindVoteBelongingToRequest() {
+        var demande = demande(20L, 1L);
+        var vote = VoteCommissaire.builder().demandePret(demande).build();
+        vote.setId(31L);
+        var reponse = new VoteResponse(31L, 20L, null, null, null, null);
+        when(demandePretRepository.findById(20L)).thenReturn(Optional.of(demande));
+        when(voteRepository.findById(31L)).thenReturn(Optional.of(vote));
+        when(voteMapper.versReponse(vote)).thenReturn(reponse);
+
+        assertThat(voteService.trouver(20L, 31L)).isEqualTo(reponse);
+    }
+
+    @Test
+    @DisplayName("R1 — masque un vote absent ou rattaché à une autre demande")
+    void shouldRejectMissingOrMismatchedVote() {
+        var demande = demande(20L, 1L);
+        var autreDemande = demande(21L, 1L);
+        var vote = VoteCommissaire.builder().demandePret(autreDemande).build();
+        when(demandePretRepository.findById(20L)).thenReturn(Optional.of(demande));
+
+        assertThatThrownBy(() -> voteService.trouver(20L, 31L))
+                .isInstanceOf(RessourceIntrouvableException.class);
+
+        when(voteRepository.findById(31L)).thenReturn(Optional.of(vote));
+        assertThatThrownBy(() -> voteService.trouver(20L, 31L))
+                .isInstanceOf(RessourceIntrouvableException.class);
+    }
+
+    @Test
+    @DisplayName("R1 — masque un vote d'une demande d'une autre tontine")
+    void shouldRejectVoteFromAnotherTontine() {
+        var demande = demande(20L, 2L);
+        when(demandePretRepository.findById(20L)).thenReturn(Optional.of(demande));
+
+        assertThatThrownBy(() -> voteService.trouver(20L, 31L))
+                .isInstanceOf(RessourceIntrouvableException.class);
+
+        verify(voteRepository, never()).findById(31L);
+    }
+
     private DemandePret demande(Long id, Long tontineId) {
         var demande = DemandePret.builder()
                 .cycle(cycle(tontineId))

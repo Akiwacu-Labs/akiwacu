@@ -17,6 +17,7 @@ import bi.ac.upg.akiwacu.pret.dto.PretDisbursementRequest;
 import bi.ac.upg.akiwacu.pret.dto.PretScheduleResponse;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import io.micrometer.core.instrument.MeterRegistry;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -37,19 +38,22 @@ public class PretService {
     private final CycleGuardService cycleGuardService;
     private final ValidateurCourantService validateurCourantService;
     private final RecuService recuService;
+    private final MeterRegistry meterRegistry;
 
     public PretService(CotisationRepository cotisationRepository,
                        PretRepository pretRepository,
                        DemandePretRepository demandePretRepository,
                        CycleGuardService cycleGuardService,
                        ValidateurCourantService validateurCourantService,
-                       RecuService recuService) {
+                       RecuService recuService,
+                       MeterRegistry meterRegistry) {
         this.cotisationRepository = cotisationRepository;
         this.pretRepository = pretRepository;
         this.demandePretRepository = demandePretRepository;
         this.cycleGuardService = cycleGuardService;
         this.validateurCourantService = validateurCourantService;
         this.recuService = recuService;
+        this.meterRegistry = meterRegistry;
     }
 
     /**
@@ -62,6 +66,8 @@ public class PretService {
         BigDecimal plafond = epargne.multiply(MULTIPLICATEUR_R6);
 
         if (montantDemande.compareTo(plafond) > 0) {
+            meterRegistry.counter("akiwacu.prets.refuses.total", "motif", "R6")
+                    .increment();
             throw new RegleMetierException(
                     "R6 : le montant demandé (%s BIF) dépasse trois fois l'épargne du membre (%s BIF)"
                             .formatted(montantDemande, epargne));

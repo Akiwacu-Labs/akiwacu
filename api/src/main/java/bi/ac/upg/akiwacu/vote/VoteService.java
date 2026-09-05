@@ -82,6 +82,19 @@ public class VoteService {
                 .toList();
     }
 
+    @Transactional(readOnly = true)
+    public VoteResponse trouver(Long demandePretId, Long voteId) {
+        Long tontineId = TenantContext.getTontineId();
+        DemandePret demande = demandePretRepository.findById(demandePretId)
+                .orElseThrow(() -> new RessourceIntrouvableException("Demande de prêt introuvable"));
+        verifierTontine(demande.getCycle().getTontine().getId(), tontineId);
+
+        VoteCommissaire vote = voteRepository.findById(voteId)
+                .filter(candidate -> candidate.getDemandePret().getId().equals(demandePretId))
+                .orElseThrow(() -> new RessourceIntrouvableException("Vote introuvable"));
+        return voteMapper.versReponse(vote);
+    }
+
     private void mettreAJourStatut(DemandePret demande) {
         long pour = voteRepository.countByDemandePretIdAndSens(demande.getId(), SensVote.POUR);
         long contre = voteRepository.countByDemandePretIdAndSens(demande.getId(), SensVote.CONTRE);
