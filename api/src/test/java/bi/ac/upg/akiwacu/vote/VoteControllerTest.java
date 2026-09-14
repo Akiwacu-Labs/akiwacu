@@ -124,4 +124,12 @@ class VoteControllerTest {
         mockMvc.perform(get("/api/demandes-pret/20/votes/31"))
                 .andExpect(status().isNotFound());
     }
+
+    @Test
+    @WithMockUser(roles = "PRESIDENT")
+    @DisplayName("cas d'autorisation — PRESIDENT ne consulte pas un vote, renvoie 403")
+    void shouldReturn403WhenRoleCannotReadVote() throws Exception {
+        mockMvc.perform(get("/api/demandes-pret/20/votes/31"))
+                .andExpect(status().isForbidden());
+    }
 }
