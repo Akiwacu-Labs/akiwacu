@@ -187,18 +187,17 @@ npm install -g @anthropic-ai/claude-code
 claude --version
 ```
 
-Puis crée ton fichier personnel :
+Puis, si Claude Code est utilisé, créer un fichier de configuration personnel :
 
 ```bash
 mkdir -p ~/.claude
 nano ~/.claude/CLAUDE.md
 ```
 
-Colle-y le bloc « `~/.claude/CLAUDE.md` » qui se trouve dans **ton**
-[`LIS-MOI-DABORD.md`](../../akiwacu-pack/LIS-MOI-DABORD.md) — dans ton pack, à côté
-du dépôt.
-C'est ce qui fait que Claude Code sait qui tu es et ce que tu possèdes, sans que tu aies
-à le lui réexpliquer à chaque session.
+Le contenu de ce fichier doit reprendre uniquement la fiche de rôle et les
+préférences de la personne concernée. Les instructions personnelles ne sont pas
+copiées dans `docs/` et aucun chemin vers un pack local externe n'est requis par
+le dépôt.
 
 ---
 
