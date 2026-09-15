@@ -26,6 +26,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.Optional;
+import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -166,6 +167,36 @@ class DemandePretServiceTest {
                 .hasMessageContaining("introuvable");
 
         verify(demandePretMapper, never()).versReponse(any());
+    }
+
+    @Test
+    @DisplayName("Filtre les demandes par statut dans le repository")
+    void shouldListRequestsFilteredByStatus() {
+        var demande = DemandePret.builder().statut(StatutDemandePret.SOUMISE).build();
+        var reponse = new DemandePretResponse(20L, 7L, 10L, null, 3,
+                "Semences", null, StatutDemandePret.SOUMISE);
+        when(demandePretRepository.findByMembreTontineIdAndStatut(1L, StatutDemandePret.SOUMISE))
+                .thenReturn(List.of(demande));
+        when(demandePretMapper.versReponse(demande)).thenReturn(reponse);
+
+        assertThat(demandePretService.listerDemandes(StatutDemandePret.SOUMISE))
+                .containsExactly(reponse);
+
+        verify(demandePretRepository)
+                .findByMembreTontineIdAndStatut(1L, StatutDemandePret.SOUMISE);
+        verify(demandePretRepository, never()).findByMembreTontineId(1L);
+    }
+
+    @Test
+    @DisplayName("Sans filtre, liste toutes les demandes de la tontine")
+    void shouldListAllRequestsWithoutStatusFilter() {
+        when(demandePretRepository.findByMembreTontineId(1L)).thenReturn(List.of());
+
+        assertThat(demandePretService.listerDemandes(null)).isEmpty();
+
+        verify(demandePretRepository).findByMembreTontineId(1L);
+        verify(demandePretRepository, never())
+                .findByMembreTontineIdAndStatut(any(), any());
     }
 
     @Test

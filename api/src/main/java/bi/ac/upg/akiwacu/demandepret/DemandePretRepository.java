@@ -14,4 +14,6 @@ import java.util.List;
 public interface DemandePretRepository extends JpaRepository<DemandePret, Long> {
 
     List<DemandePret> findByMembreTontineId(Long tontineId);
+
+    List<DemandePret> findByMembreTontineIdAndStatut(Long tontineId, StatutDemandePret statut);
 }
