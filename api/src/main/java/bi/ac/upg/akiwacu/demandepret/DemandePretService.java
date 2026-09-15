@@ -80,8 +80,16 @@ public class DemandePretService {
 
     @Transactional(readOnly = true)
     public List<DemandePretResponse> listerDemandes() {
+        return listerDemandes(null);
+    }
+
+    @Transactional(readOnly = true)
+    public List<DemandePretResponse> listerDemandes(StatutDemandePret statut) {
         Long tontineId = TenantContext.getTontineId();
-        return demandePretRepository.findByMembreTontineId(tontineId).stream()
+        var demandes = statut == null
+                ? demandePretRepository.findByMembreTontineId(tontineId)
+                : demandePretRepository.findByMembreTontineIdAndStatut(tontineId, statut);
+        return demandes.stream()
                 .map(demandePretMapper::versReponse)
                 .toList();
     }

@@ -4,6 +4,7 @@ import bi.ac.upg.akiwacu.auth.JwtService;
 import bi.ac.upg.akiwacu.common.exception.RegleMetierException;
 import bi.ac.upg.akiwacu.vote.dto.VoteRequest;
 import bi.ac.upg.akiwacu.vote.dto.VoteResponse;
+import bi.ac.upg.akiwacu.vote.dto.VoteDecisionResponse;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -131,5 +132,19 @@ class VoteControllerTest {
     void shouldReturn403WhenRoleCannotReadVote() throws Exception {
         mockMvc.perform(get("/api/demandes-pret/20/votes/31"))
                 .andExpect(status().isForbidden());
+    }
+
+    @Test
+    @WithMockUser(roles = "MEMBRE")
+    @DisplayName("cas nominal — membre consulte le résumé de décision")
+    void shouldReturnDecisionSummary() throws Exception {
+        when(voteService.decision(20L)).thenReturn(
+                new VoteDecisionResponse(20L, 1L, 0L, 2, false,
+                        bi.ac.upg.akiwacu.demandepret.StatutDemandePret.SOUMISE));
+
+        mockMvc.perform(get("/api/demandes-pret/20/votes/decision"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.votesPour").value(1))
+                .andExpect(jsonPath("$.quorumAtteint").value(false));
     }
 }

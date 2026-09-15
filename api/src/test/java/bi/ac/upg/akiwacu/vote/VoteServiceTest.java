@@ -12,6 +12,7 @@ import bi.ac.upg.akiwacu.utilisateur.Utilisateur;
 import bi.ac.upg.akiwacu.utilisateur.UtilisateurRepository;
 import bi.ac.upg.akiwacu.vote.dto.VoteRequest;
 import bi.ac.upg.akiwacu.vote.dto.VoteResponse;
+import bi.ac.upg.akiwacu.vote.dto.VoteDecisionResponse;
 import bi.ac.upg.akiwacu.vote.mapper.VoteCommissaireMapper;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
@@ -221,6 +222,36 @@ class VoteServiceTest {
                 .isInstanceOf(RessourceIntrouvableException.class);
 
         verify(voteRepository, never()).findById(31L);
+    }
+
+    @Test
+    @DisplayName("cas nominal — expose le résumé du quorum")
+    void shouldReturnDecisionSummary() {
+        var demande = demande(20L, 1L);
+        demande.setStatut(StatutDemandePret.SOUMISE);
+        when(demandePretRepository.findById(20L)).thenReturn(Optional.of(demande));
+        when(voteRepository.countByDemandePretIdAndSens(20L, SensVote.POUR)).thenReturn(1L);
+        when(voteRepository.countByDemandePretIdAndSens(20L, SensVote.CONTRE)).thenReturn(1L);
+
+        VoteDecisionResponse resultat = voteService.decision(20L);
+
+        assertThat(resultat.demandePretId()).isEqualTo(20L);
+        assertThat(resultat.votesPour()).isEqualTo(1L);
+        assertThat(resultat.votesContre()).isEqualTo(1L);
+        assertThat(resultat.quorumRequis()).isEqualTo(2);
+        assertThat(resultat.quorumAtteint()).isFalse();
+        assertThat(resultat.statut()).isEqualTo(StatutDemandePret.SOUMISE);
+    }
+
+    @Test
+    @DisplayName("R1 — masque le résumé d'une demande d'une autre tontine")
+    void shouldRejectDecisionSummaryFromAnotherTontine() {
+        when(demandePretRepository.findById(20L)).thenReturn(Optional.of(demande(20L, 2L)));
+
+        assertThatThrownBy(() -> voteService.decision(20L))
+                .isInstanceOf(RessourceIntrouvableException.class);
+
+        verify(voteRepository, never()).countByDemandePretIdAndSens(any(), any());
     }
 
     private DemandePret demande(Long id, Long tontineId) {

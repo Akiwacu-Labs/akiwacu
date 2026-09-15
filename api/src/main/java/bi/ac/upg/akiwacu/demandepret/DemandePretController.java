@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
@@ -48,9 +49,11 @@ public class DemandePretController {
 
     @GetMapping
     @PreAuthorize("hasAnyRole('MEMBRE', 'COMMISSAIRE', 'TRESORIER', 'GESTIONNAIRE', 'ADMIN')")
-    @Operation(summary = "Lister les demandes de prêt de la tontine courante")
-    public List<DemandePretResponse> lister() {
-        return demandePretService.listerDemandes();
+    @Operation(summary = "Lister les demandes de prêt de la tontine courante",
+            description = "Filtre optionnellement les demandes par statut métier.")
+    public List<DemandePretResponse> lister(
+            @RequestParam(required = false) StatutDemandePret statut) {
+        return demandePretService.listerDemandes(statut);
     }
 
     @GetMapping("/{demandePretId}")
