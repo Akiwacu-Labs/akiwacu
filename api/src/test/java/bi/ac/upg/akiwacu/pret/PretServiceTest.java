@@ -13,6 +13,8 @@ import bi.ac.upg.akiwacu.recu.RecuService;
 import bi.ac.upg.akiwacu.tontine.Tontine;
 import bi.ac.upg.akiwacu.utilisateur.Utilisateur;
 import bi.ac.upg.akiwacu.pret.dto.PretDisbursementRequest;
+import io.micrometer.core.instrument.Counter;
+import io.micrometer.core.instrument.MeterRegistry;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -54,6 +56,12 @@ class PretServiceTest {
     @Mock
     private RecuService recuService;
 
+    @Mock
+    private MeterRegistry meterRegistry;
+
+    @Mock
+    private Counter rejectedLoanCounter;
+
     @InjectMocks
     private PretService pretService;
 
@@ -74,6 +82,8 @@ class PretServiceTest {
         // La demande de 300 001 BIF doit être refusée avant toute création de demande.
         when(cotisationRepository.sommeParMembreEtCycle(1L, 10L))
                 .thenReturn(new BigDecimal("100000"));
+        when(meterRegistry.counter("akiwacu.prets.refuses.total", "motif", "R6"))
+                .thenReturn(rejectedLoanCounter);
 
         assertThatThrownBy(() -> pretService.verifierLimiteMontant(
                 1L, 10L, new BigDecimal("300001")))
@@ -81,6 +91,7 @@ class PretServiceTest {
                 .hasMessageContaining("R6")
                 .hasMessageContaining("300001")
                 .hasMessageContaining("100000");
+        verify(rejectedLoanCounter).increment();
     }
 
     @Test
@@ -114,11 +125,14 @@ class PretServiceTest {
         // Sans cotisation, le plafond vaut zéro et même une demande d'un BIF est refusée.
         when(cotisationRepository.sommeParMembreEtCycle(1L, 10L))
                 .thenReturn(BigDecimal.ZERO);
+        when(meterRegistry.counter("akiwacu.prets.refuses.total", "motif", "R6"))
+                .thenReturn(rejectedLoanCounter);
 
         assertThatThrownBy(() -> pretService.verifierLimiteMontant(
                 1L, 10L, BigDecimal.ONE))
                 .isInstanceOf(RegleMetierException.class)
                 .hasMessageContaining("R6");
+        verify(rejectedLoanCounter).increment();
     }
 
     @Test

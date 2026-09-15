@@ -13,6 +13,8 @@ import bi.ac.upg.akiwacu.utilisateur.UtilisateurRepository;
 import bi.ac.upg.akiwacu.vote.dto.VoteRequest;
 import bi.ac.upg.akiwacu.vote.dto.VoteResponse;
 import bi.ac.upg.akiwacu.vote.mapper.VoteCommissaireMapper;
+import io.micrometer.core.instrument.Counter;
+import io.micrometer.core.instrument.MeterRegistry;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -46,6 +48,10 @@ class VoteServiceTest {
     private UtilisateurRepository utilisateurRepository;
     @Mock
     private VoteCommissaireMapper voteMapper;
+    @Mock
+    private MeterRegistry meterRegistry;
+    @Mock
+    private Counter rejectedLoansCounter;
 
     @InjectMocks
     private VoteService voteService;
@@ -133,6 +139,33 @@ class VoteServiceTest {
     }
 
     @Test
+    @DisplayName("R4 â€” publie un Counter des prÃªts refusÃ©s avec le motif")
+    void shouldCountRejectedRequestByReason() {
+        var demande = demande(20L, 1L);
+        demande.setMotif("TrÃ©sorerie");
+        var commissaire = utilisateur(8L, 1L, "bob@akiwacu.bi");
+        authentifier("bob@akiwacu.bi");
+        var vote = VoteCommissaire.builder().demandePret(demande).commissaire(commissaire)
+                .sens(SensVote.CONTRE).dateVote(Instant.now()).build();
+        var reponse = new VoteResponse(31L, 20L, 8L, SensVote.CONTRE, null, vote.getDateVote());
+        when(demandePretRepository.findById(20L)).thenReturn(Optional.of(demande));
+        when(utilisateurRepository.findByEmail("bob@akiwacu.bi"))
+                .thenReturn(Optional.of(commissaire));
+        when(voteRepository.existsByDemandePretIdAndCommissaireId(20L, 8L)).thenReturn(false);
+        when(voteRepository.save(any(VoteCommissaire.class))).thenReturn(vote);
+        when(voteRepository.countByDemandePretIdAndSens(20L, SensVote.POUR)).thenReturn(0L);
+        when(voteRepository.countByDemandePretIdAndSens(20L, SensVote.CONTRE)).thenReturn(2L);
+        when(voteMapper.versReponse(vote)).thenReturn(reponse);
+        when(meterRegistry.counter("akiwacu.prets.refuses.total", "motif", "TrÃ©sorerie"))
+                .thenReturn(rejectedLoansCounter);
+
+        voteService.voter(20L, new VoteRequest(SensVote.CONTRE, null));
+
+        verify(meterRegistry).counter("akiwacu.prets.refuses.total", "motif", "TrÃ©sorerie");
+        verify(rejectedLoansCounter).increment();
+    }
+
+    @Test
     @DisplayName("R1 — masque un commissaire d'une autre tontine")
     void shouldRejectVoteFromCommissionerOfAnotherTontine() {
         var demande = demande(20L, 1L);
@@ -146,6 +179,48 @@ class VoteServiceTest {
                 .isInstanceOf(RessourceIntrouvableException.class);
 
         verify(voteRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("cas nominal — retrouve un vote de la demande")
+    void shouldFindVoteBelongingToRequest() {
+        var demande = demande(20L, 1L);
+        var vote = VoteCommissaire.builder().demandePret(demande).build();
+        vote.setId(31L);
+        var reponse = new VoteResponse(31L, 20L, null, null, null, null);
+        when(demandePretRepository.findById(20L)).thenReturn(Optional.of(demande));
+        when(voteRepository.findById(31L)).thenReturn(Optional.of(vote));
+        when(voteMapper.versReponse(vote)).thenReturn(reponse);
+
+        assertThat(voteService.trouver(20L, 31L)).isEqualTo(reponse);
+    }
+
+    @Test
+    @DisplayName("R1 — masque un vote absent ou rattaché à une autre demande")
+    void shouldRejectMissingOrMismatchedVote() {
+        var demande = demande(20L, 1L);
+        var autreDemande = demande(21L, 1L);
+        var vote = VoteCommissaire.builder().demandePret(autreDemande).build();
+        when(demandePretRepository.findById(20L)).thenReturn(Optional.of(demande));
+
+        assertThatThrownBy(() -> voteService.trouver(20L, 31L))
+                .isInstanceOf(RessourceIntrouvableException.class);
+
+        when(voteRepository.findById(31L)).thenReturn(Optional.of(vote));
+        assertThatThrownBy(() -> voteService.trouver(20L, 31L))
+                .isInstanceOf(RessourceIntrouvableException.class);
+    }
+
+    @Test
+    @DisplayName("R1 — masque un vote d'une demande d'une autre tontine")
+    void shouldRejectVoteFromAnotherTontine() {
+        var demande = demande(20L, 2L);
+        when(demandePretRepository.findById(20L)).thenReturn(Optional.of(demande));
+
+        assertThatThrownBy(() -> voteService.trouver(20L, 31L))
+                .isInstanceOf(RessourceIntrouvableException.class);
+
+        verify(voteRepository, never()).findById(31L);
     }
 
     private DemandePret demande(Long id, Long tontineId) {

@@ -11,6 +11,7 @@ import bi.ac.upg.akiwacu.utilisateur.UtilisateurRepository;
 import bi.ac.upg.akiwacu.vote.dto.VoteRequest;
 import bi.ac.upg.akiwacu.vote.dto.VoteResponse;
 import bi.ac.upg.akiwacu.vote.mapper.VoteCommissaireMapper;
+import io.micrometer.core.instrument.MeterRegistry;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
@@ -31,15 +32,18 @@ public class VoteService {
     private final DemandePretRepository demandePretRepository;
     private final UtilisateurRepository utilisateurRepository;
     private final VoteCommissaireMapper voteMapper;
+    private final MeterRegistry meterRegistry;
 
     public VoteService(VoteCommissaireRepository voteRepository,
                        DemandePretRepository demandePretRepository,
                        UtilisateurRepository utilisateurRepository,
-                       VoteCommissaireMapper voteMapper) {
+                       VoteCommissaireMapper voteMapper,
+                       MeterRegistry meterRegistry) {
         this.voteRepository = voteRepository;
         this.demandePretRepository = demandePretRepository;
         this.utilisateurRepository = utilisateurRepository;
         this.voteMapper = voteMapper;
+        this.meterRegistry = meterRegistry;
     }
 
     @Transactional
@@ -82,6 +86,19 @@ public class VoteService {
                 .toList();
     }
 
+    @Transactional(readOnly = true)
+    public VoteResponse trouver(Long demandePretId, Long voteId) {
+        Long tontineId = TenantContext.getTontineId();
+        DemandePret demande = demandePretRepository.findById(demandePretId)
+                .orElseThrow(() -> new RessourceIntrouvableException("Demande de prêt introuvable"));
+        verifierTontine(demande.getCycle().getTontine().getId(), tontineId);
+
+        VoteCommissaire vote = voteRepository.findById(voteId)
+                .filter(candidate -> candidate.getDemandePret().getId().equals(demandePretId))
+                .orElseThrow(() -> new RessourceIntrouvableException("Vote introuvable"));
+        return voteMapper.versReponse(vote);
+    }
+
     private void mettreAJourStatut(DemandePret demande) {
         long pour = voteRepository.countByDemandePretIdAndSens(demande.getId(), SensVote.POUR);
         long contre = voteRepository.countByDemandePretIdAndSens(demande.getId(), SensVote.CONTRE);
@@ -92,6 +109,8 @@ public class VoteService {
         } else if (contre >= 2) {
             demande.setStatut(StatutDemandePret.REJETEE);
             demandePretRepository.save(demande);
+            meterRegistry.counter("akiwacu.prets.refuses.total",
+                    "motif", demande.getMotif()).increment();
         }
     }
 
