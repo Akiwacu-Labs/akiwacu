@@ -52,4 +52,15 @@ public class VoteController {
     public List<VoteResponse> lister(@PathVariable Long demandePretId) {
         return voteService.lister(demandePretId);
     }
+
+    @GetMapping("/{voteId}")
+    @PreAuthorize("hasAnyRole('MEMBRE', 'COMMISSAIRE', 'TRESORIER', 'GESTIONNAIRE', 'ADMIN')")
+    @Operation(summary = "Consulter un vote d'une demande de prêt")
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Vote trouvé"),
+        @ApiResponse(responseCode = "404", description = "Vote introuvable, associé à une autre demande ou hors tontine")
+    })
+    public VoteResponse trouver(@PathVariable Long demandePretId, @PathVariable Long voteId) {
+        return voteService.trouver(demandePretId, voteId);
+    }
 }
