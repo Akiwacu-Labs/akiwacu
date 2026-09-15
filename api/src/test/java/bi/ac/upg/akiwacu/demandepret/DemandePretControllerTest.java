@@ -133,4 +133,20 @@ class DemandePretControllerTest {
         mockMvc.perform(get("/api/demandes-pret?statut=SOUMISE"))
                 .andExpect(status().isOk());
     }
+
+    @Test
+    @WithMockUser(roles = "COMMISSAIRE")
+    @DisplayName("cas de validation — statut inconnu, renvoie 400")
+    void shouldReturn400WhenStatusFilterIsInvalid() throws Exception {
+        mockMvc.perform(get("/api/demandes-pret?statut=INCONNU"))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    @WithMockUser(roles = "PRESIDENT")
+    @DisplayName("cas d'autorisation — PRESIDENT ne liste pas les demandes, renvoie 403")
+    void shouldReturn403WhenRoleCannotListRequests() throws Exception {
+        mockMvc.perform(get("/api/demandes-pret?statut=SOUMISE"))
+                .andExpect(status().isForbidden());
+    }
 }

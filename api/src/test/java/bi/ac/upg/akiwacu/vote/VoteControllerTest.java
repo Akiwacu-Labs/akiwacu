@@ -147,4 +147,24 @@ class VoteControllerTest {
                 .andExpect(jsonPath("$.votesPour").value(1))
                 .andExpect(jsonPath("$.quorumAtteint").value(false));
     }
+
+    @Test
+    @WithMockUser(roles = "PRESIDENT")
+    @DisplayName("cas d'autorisation — PRESIDENT ne consulte pas la décision, renvoie 403")
+    void shouldReturn403WhenRoleCannotReadDecisionSummary() throws Exception {
+        mockMvc.perform(get("/api/demandes-pret/20/votes/decision"))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    @WithMockUser(roles = "MEMBRE")
+    @DisplayName("cas d'erreur — demande du résumé introuvable, renvoie 404")
+    void shouldReturn404WhenDecisionSummaryRequestIsMissing() throws Exception {
+        when(voteService.decision(20L)).thenThrow(
+                new bi.ac.upg.akiwacu.common.exception.RessourceIntrouvableException(
+                        "Demande de prêt introuvable"));
+
+        mockMvc.perform(get("/api/demandes-pret/20/votes/decision"))
+                .andExpect(status().isNotFound());
+    }
 }
