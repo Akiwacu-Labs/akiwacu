@@ -74,11 +74,34 @@ public class MembreService {
     @Transactional
     public MembreResponse modifier(Long id, MembreModificationRequest requete) {
         Membre membre = trouverOuLever(id);
+        verifierTransitionStatut(membre.getStatut(), requete.statut());
         if (!Objects.equals(membre.getNumeroMembre(), requete.numeroMembre())) {
             verifierNumeroMembreDisponible(requete.numeroMembre());
         }
         membreMapper.mettreAJour(membre, requete);
         return membreMapper.versReponse(membre);
+    }
+
+    /**
+     * Un membre peut être suspendu puis réactivé, ou sortir définitivement.
+     * SORTI est terminal : les cotisations, prêts et reçus historiques restent
+     * référencés et le membre ne doit pas redevenir actif par une simple PUT.
+     */
+    private void verifierTransitionStatut(StatutMembre actuel, StatutMembre nouveau) {
+        if (actuel == nouveau) {
+            return;
+        }
+
+        boolean autorisee = switch (actuel) {
+            case ACTIF -> nouveau == StatutMembre.SUSPENDU || nouveau == StatutMembre.SORTI;
+            case SUSPENDU -> nouveau == StatutMembre.ACTIF || nouveau == StatutMembre.SORTI;
+            case SORTI -> false;
+        };
+
+        if (!autorisee) {
+            throw new RegleMetierException(
+                    "Transition de statut interdite : un membre SORTI est définitif");
+        }
     }
 
     private void verifierNumeroMembreDisponible(String numeroMembre) {

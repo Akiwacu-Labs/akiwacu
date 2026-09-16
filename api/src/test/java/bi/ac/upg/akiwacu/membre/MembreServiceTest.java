@@ -157,6 +157,22 @@ class MembreServiceTest {
     }
 
     @Test
+    @DisplayName("Règle métier — refuse la réactivation d'un membre sorti")
+    void shouldRejectTransitionFromSortiToActif() {
+        Membre sorti = unMembre();
+        sorti.setStatut(StatutMembre.SORTI);
+        var requete = new MembreModificationRequest("M-014", "Nkurunziza", "Alice",
+                "79000000", StatutMembre.ACTIF);
+        when(membreRepository.findById(5L)).thenReturn(Optional.of(sorti));
+
+        assertThatThrownBy(() -> membreService.modifier(5L, requete))
+                .isInstanceOf(RegleMetierException.class)
+                .hasMessageContaining("SORTI");
+
+        assertThat(sorti.getStatut()).isEqualTo(StatutMembre.SORTI);
+    }
+
+    @Test
     @DisplayName("cas d'exception — lève une exception en modifiant un membre introuvable")
     void shouldThrowWhenUpdatingUnknownMembre() {
         var requete = new MembreModificationRequest("M-014", "X", "Y", "70000000", StatutMembre.ACTIF);

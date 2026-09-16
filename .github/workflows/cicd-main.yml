@@ -237,6 +237,13 @@ jobs:
           docker push ${IMAGE}:prod-${{ needs.build-test-quality.outputs.version }}
           docker push ${IMAGE}:latest
 
+      # Le runner est persistant et construit une nouvelle image à chaque push.
+      # Ne supprime pas les volumes : aucun volume du runner ne doit être traité
+      # comme un cache CI, et cette commande ne touche pas aux conteneurs actifs.
+      - name: Nettoyage Docker du runner
+        if: always()
+        run: docker system prune -f
+
   # ─────────────────────────────────────────────────────────────
   # 2 bis. Image du client React
   # ─────────────────────────────────────────────────────────────
@@ -306,6 +313,11 @@ jobs:
         working-directory: .
         run: docker push ${IMAGE_CLIENT}:latest
 
+      - name: Nettoyage Docker du runner après le build client
+        if: always()
+        working-directory: .
+        run: docker system prune -f
+
   # ─────────────────────────────────────────────────────────────
   # 3. Déploiement sur vm-prod-g1 + vérification de démarrage
   # ─────────────────────────────────────────────────────────────
@@ -359,7 +371,7 @@ jobs:
             export IMAGE_TAG='latest'
             docker compose pull
             docker compose up -d --remove-orphans
-            docker image prune -f
+            docker system prune -f
           EOF
 
       - name: Vérification du bon démarrage de l'application
