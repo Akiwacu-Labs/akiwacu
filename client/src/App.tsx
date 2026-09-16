@@ -1,22 +1,28 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Route, Routes } from "react-router-dom";
-import { AppLayout } from "@/layouts/AppLayout";
-import { PagePlaceholder } from "@/pages/PagePlaceholder";
+import { BrowserRouter } from "react-router-dom";
+import AppRouter from "@/routes/AppRouter";
+import { AuthProvider } from "@/context/AuthContext";
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 30_000,
+      retry: (failureCount, error) => {
+        const status = (error as { status?: number }).status;
+        if ([0, 400, 401, 403, 404, 409].includes(status ?? -1)) return false;
+        return failureCount < 2;
+      },
+    },
+  },
+});
 
 export function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
-        <Routes>
-          <Route element={<AppLayout />}>
-            <Route index element={<PagePlaceholder titre="Accueil" />} />
-            <Route path="cotisations" element={<PagePlaceholder titre="Cotisations" />} />
-            <Route path="prets" element={<PagePlaceholder titre="Prêts" />} />
-            <Route path="profil" element={<PagePlaceholder titre="Profil" />} />
-          </Route>
-        </Routes>
+        <AuthProvider>
+          <AppRouter />
+        </AuthProvider>
       </BrowserRouter>
     </QueryClientProvider>
   );

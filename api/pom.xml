@@ -29,7 +29,7 @@
     <!-- Seuil de couverture à cliquet (D-10) : 0.50 (D3) → 0.60 (D4) → 0.80 (D6),
          ne redescend jamais. Bloquant seulement quand COVERAGE_GATE=true côté
          GitHub Actions (cicd-develop.yml/cicd-main.yml). -->
-    <jacoco.line.coverage>0.50</jacoco.line.coverage>
+    <jacoco.line.coverage>0.60</jacoco.line.coverage>
   </properties>
 
   <dependencyManagement>

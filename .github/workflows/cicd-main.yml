@@ -248,6 +248,13 @@ jobs:
           docker push ${IMAGE}:prod-${{ needs.build-test-quality.outputs.version }}
           docker push ${IMAGE}:latest
 
+      # Le runner est persistant et construit une nouvelle image à chaque push.
+      # Ne supprime pas les volumes : aucun volume du runner ne doit être traité
+      # comme un cache CI, et cette commande ne touche pas aux conteneurs actifs.
+      - name: Nettoyage Docker du runner
+        if: always()
+        run: docker system prune -f
+
   # ─────────────────────────────────────────────────────────────
   # 2 bis. Image du client React
   # ─────────────────────────────────────────────────────────────
@@ -268,18 +275,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # Node 20 est PRÉ-INSTALLÉ sur vm-devops-g1 — remplace actions/setup-node.
-      - name: Vérification de Node et normalisation du nom d'image
+      # Le client Dockerfile fait tout en interne (corepack + pnpm install + build).
+      # Pas de node/pnpm requis sur le runner host.
+      - name: Normalisation du nom d'image client
         working-directory: .
         run: |
-          node -v && corepack --version
           echo "IMAGE_CLIENT=${REGISTRY}/$(echo '${{ github.repository }}/client' | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
-
-      - name: Installation et build du client
-        run: |
-          corepack enable
-          pnpm install --frozen-lockfile
-          pnpm build
 
       - name: Construction de l'image du client
         working-directory: .
@@ -316,6 +317,11 @@ jobs:
       - name: Publication de l'image client
         working-directory: .
         run: docker push ${IMAGE_CLIENT}:latest
+
+      - name: Nettoyage Docker du runner après le build client
+        if: always()
+        working-directory: .
+        run: docker system prune -f
 
   # ─────────────────────────────────────────────────────────────
   # 3. Déploiement sur vm-prod-g1 + vérification de démarrage
@@ -370,7 +376,7 @@ jobs:
             export IMAGE_TAG='latest'
             docker compose pull
             docker compose up -d --remove-orphans
-            docker image prune -f
+            docker system prune -f
           EOF
 
       - name: Vérification du bon démarrage de l'application
