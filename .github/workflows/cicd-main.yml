@@ -275,18 +275,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # Node 20 est PRÉ-INSTALLÉ sur vm-devops-g1 — remplace actions/setup-node.
-      - name: Vérification de Node et normalisation du nom d'image
+      # Le client Dockerfile fait tout en interne (corepack + pnpm install + build).
+      # Pas de node/pnpm requis sur le runner host.
+      - name: Normalisation du nom d'image client
         working-directory: .
         run: |
-          node -v && corepack --version
           echo "IMAGE_CLIENT=${REGISTRY}/$(echo '${{ github.repository }}/client' | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
-
-      - name: Installation et build du client
-        run: |
-          corepack enable
-          pnpm install --frozen-lockfile
-          pnpm build
 
       - name: Construction de l'image du client
         working-directory: .
