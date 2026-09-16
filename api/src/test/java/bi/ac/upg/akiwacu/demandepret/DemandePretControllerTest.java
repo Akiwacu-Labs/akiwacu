@@ -24,6 +24,7 @@ import java.time.LocalDate;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -120,5 +121,32 @@ class DemandePretControllerTest {
                         .contentType("application/json")
                         .content(corps))
                 .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    @WithMockUser(roles = "COMMISSAIRE")
+    @DisplayName("cas nominal — filtre les demandes par statut")
+    void shouldFilterRequestsByStatus() throws Exception {
+        when(demandePretService.listerDemandes(StatutDemandePret.SOUMISE))
+                .thenReturn(java.util.List.of());
+
+        mockMvc.perform(get("/api/demandes-pret?statut=SOUMISE"))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    @WithMockUser(roles = "COMMISSAIRE")
+    @DisplayName("cas de validation — statut inconnu, renvoie 400")
+    void shouldReturn400WhenStatusFilterIsInvalid() throws Exception {
+        mockMvc.perform(get("/api/demandes-pret?statut=INCONNU"))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    @WithMockUser(roles = "PRESIDENT")
+    @DisplayName("cas d'autorisation — PRESIDENT ne liste pas les demandes, renvoie 403")
+    void shouldReturn403WhenRoleCannotListRequests() throws Exception {
+        mockMvc.perform(get("/api/demandes-pret?statut=SOUMISE"))
+                .andExpect(status().isForbidden());
     }
 }

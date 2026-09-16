@@ -2,6 +2,7 @@ package bi.ac.upg.akiwacu.vote;
 
 import bi.ac.upg.akiwacu.vote.dto.VoteRequest;
 import bi.ac.upg.akiwacu.vote.dto.VoteResponse;
+import bi.ac.upg.akiwacu.vote.dto.VoteDecisionResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
@@ -51,5 +52,28 @@ public class VoteController {
     @Operation(summary = "Lister les votes d'une demande de prêt")
     public List<VoteResponse> lister(@PathVariable Long demandePretId) {
         return voteService.lister(demandePretId);
+    }
+
+    @GetMapping("/{voteId}")
+    @PreAuthorize("hasAnyRole('MEMBRE', 'COMMISSAIRE', 'TRESORIER', 'GESTIONNAIRE', 'ADMIN')")
+    @Operation(summary = "Consulter un vote d'une demande de prêt")
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Vote trouvé"),
+        @ApiResponse(responseCode = "404", description = "Vote introuvable, associé à une autre demande ou hors tontine")
+    })
+    public VoteResponse trouver(@PathVariable Long demandePretId, @PathVariable Long voteId) {
+        return voteService.trouver(demandePretId, voteId);
+    }
+
+    @GetMapping("/decision")
+    @PreAuthorize("hasAnyRole('MEMBRE', 'COMMISSAIRE', 'TRESORIER', 'GESTIONNAIRE', 'ADMIN')")
+    @Operation(summary = "Consulter le résumé de décision d'une demande de prêt",
+            description = "Retourne les votes POUR/CONTRE, le quorum R4 et le statut courant.")
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Résumé trouvé"),
+        @ApiResponse(responseCode = "404", description = "Demande introuvable ou hors tontine")
+    })
+    public VoteDecisionResponse decision(@PathVariable Long demandePretId) {
+        return voteService.decision(demandePretId);
     }
 }

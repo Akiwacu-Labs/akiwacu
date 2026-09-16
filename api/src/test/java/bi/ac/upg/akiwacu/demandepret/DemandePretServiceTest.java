@@ -26,6 +26,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.Optional;
+import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -152,6 +153,53 @@ class DemandePretServiceTest {
     }
 
     @Test
+    @DisplayName("R1 — masque une demande d'une autre tontine")
+    void shouldNotAccessDataFromAnotherTontine() {
+        var demande = DemandePret.builder()
+                .cycle(Cycle.builder().tontine(tontine(2L)).build())
+                .membre(Membre.builder().tontine(tontine(2L)).build())
+                .build();
+        demande.setId(20L);
+        when(demandePretRepository.findById(20L)).thenReturn(Optional.of(demande));
+
+        assertThatThrownBy(() -> demandePretService.trouverDemande(20L))
+                .isInstanceOf(RessourceIntrouvableException.class)
+                .hasMessageContaining("introuvable");
+
+        verify(demandePretMapper, never()).versReponse(any());
+    }
+
+    @Test
+    @DisplayName("Filtre les demandes par statut dans le repository")
+    void shouldListRequestsFilteredByStatus() {
+        var demande = DemandePret.builder().statut(StatutDemandePret.SOUMISE).build();
+        var reponse = new DemandePretResponse(20L, 7L, 10L, null, 3,
+                "Semences", null, StatutDemandePret.SOUMISE);
+        when(demandePretRepository.findByMembreTontineIdAndStatut(1L, StatutDemandePret.SOUMISE))
+                .thenReturn(List.of(demande));
+        when(demandePretMapper.versReponse(demande)).thenReturn(reponse);
+
+        assertThat(demandePretService.listerDemandes(StatutDemandePret.SOUMISE))
+                .containsExactly(reponse);
+
+        verify(demandePretRepository)
+                .findByMembreTontineIdAndStatut(1L, StatutDemandePret.SOUMISE);
+        verify(demandePretRepository, never()).findByMembreTontineId(1L);
+    }
+
+    @Test
+    @DisplayName("Sans filtre, liste toutes les demandes de la tontine")
+    void shouldListAllRequestsWithoutStatusFilter() {
+        when(demandePretRepository.findByMembreTontineId(1L)).thenReturn(List.of());
+
+        assertThat(demandePretService.listerDemandes(null)).isEmpty();
+
+        verify(demandePretRepository).findByMembreTontineId(1L);
+        verify(demandePretRepository, never())
+                .findByMembreTontineIdAndStatut(any(), any());
+    }
+
+    @Test
     @DisplayName("Lève une exception si le membre est introuvable")
     void shouldThrowWhenMemberNotFound() {
         var requete = new DemandePretRequest(99L, new BigDecimal("100000"), 3,
@@ -174,5 +222,11 @@ class DemandePretServiceTest {
                 .build();
         utilisateur.setId(id);
         return utilisateur;
+    }
+
+    private Tontine tontine(Long id) {
+        var tontine = Tontine.builder().build();
+        tontine.setId(id);
+        return tontine;
     }
 }
